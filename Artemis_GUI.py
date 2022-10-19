@@ -97,6 +97,9 @@ def convert_to_float(x):
         return 0
 
 
+
+
+
 def processing_report_square_wood():
     """
     Фугкция для обработки данных
