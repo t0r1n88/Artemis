@@ -12,9 +12,8 @@ from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
 import time
-# pd.options.mode.chained_assignment = None  # default='warn'
+pd.options.mode.chained_assignment = None  # default='warn'
 import warnings
-
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 
@@ -49,6 +48,129 @@ def select_file_data_xlsx():
     file_data_xlsx = filedialog.askopenfilename(filetypes=(('Excel files', '*.xlsx'), ('all files', '*.*')))
 
 
+"""
+Функции для работы проверки наличия записи участка УППП
+"""
+def select_file_params_presense():
+    """
+    Функция для выбора файла с номерами колонок по которым будет вестись сравнение
+    :return: Путь к файлу с параметрами
+    """
+    global file_params_presense
+    # Получаем путь к файлу
+    file_params_presense = filedialog.askopenfilename(filetypes=(('Excel files', '*.xlsx'), ('all files', '*.*')))
+
+def select_file_reestr_presense():
+    """
+    Функция для выбора файла реестра. Отдельные функции для таких простых вещей сделаны специально чтобы другому человеку
+    было легче разобраться
+    """
+    global file_reestr_presense
+    file_reestr_presense = filedialog.askopenfilename(filetypes=(('Excel files', '*.xlsx'), ('all files', '*.*')))
+
+def select_file_statement_presense():
+    """
+    Функция для выбора файла ведомости записи  в которой нужно проверить в реестре на наличие
+    """
+    global file_statement_presense
+    file_statement_presense = filedialog.askopenfilename(filetypes=(('Excel files', '*.xlsx'), ('all files', '*.*')))
+
+
+def processing_presense_reestr():
+    """
+    Функция проверяеющая наличие записей из ведомости в в реестре УПП
+    """
+    try:
+        params = pd.read_excel(file_params_presense, header=None,
+                              keep_default_na=False)  # получаем файл с порядковыми номерами колонок которые нужно сравнивать
+
+        # Преврашаем каждую колонку в список
+        params_first_columns = params[0].tolist()
+        params_second_columns = params[1].tolist()
+
+        # Конвертируем в инт заодно проверяя корректность введенных данных
+        int_params_first_columns = convert_params_columns_to_int(params_first_columns)
+        int_params_second_columns = convert_params_columns_to_int(params_second_columns)
+
+        # Отнимаем 1 от каждого значения чтобы привести к питоновским индексам
+        int_params_first_columns = list(map(lambda x: x - 1, int_params_first_columns))
+        int_params_second_columns = list(map(lambda x: x - 1, int_params_second_columns))
+
+        # Считываем из файлов только те колонки по которым будет вестись сравнение
+        first_df = pd.read_excel(file_reestr_presense,
+                                 skiprows=6, usecols=int_params_first_columns, keep_default_na=False)
+        second_df = pd.read_excel(file_statement_presense, usecols=int_params_second_columns, keep_default_na=False)
+        # Конвертируем нужные нам колонки в str
+        convert_columns_to_str(first_df, int_params_first_columns)
+        convert_columns_to_str(second_df, int_params_second_columns)
+
+        # Создаем в каждом датафрейме колонку с айди путем склеивания всех нужных колонок в одну строку
+        first_df['ID'] = first_df.iloc[:, int_params_first_columns].sum(axis=1)
+        second_df['ID'] = second_df.iloc[:, int_params_second_columns].sum(axis=1)
+
+        # Обрабатываем дубликаты
+
+        first_df.drop_duplicates(subset=['ID'], keep='last', inplace=True)  # Удаляем дубликаты из датафрейма
+
+        second_df.drop_duplicates(subset=['ID'], keep='last', inplace=True)  # Удаляем дубликаты из датафрейма
+
+        # Создаем документ
+        wb = openpyxl.Workbook()
+        # создаем листы
+        ren_sheet = wb['Sheet']
+        ren_sheet.title = 'Итог'
+
+        # Создаем датафрейм
+        itog_df = pd.merge(first_df, second_df, how='outer', left_on=['ID'], right_on=['ID'],
+                           indicator=True)
+
+        # Отфильтровываем значения both,right
+        out_df = itog_df[(itog_df['_merge'] == 'both') | (itog_df['_merge'] == 'right_only')]
+
+        out_df.rename(columns={'_merge': 'Присутствие в реестре УПП'}, inplace=True)
+
+        out_df['Присутствие в реестре УПП'] = out_df['Присутствие в реестре УПП'].apply(
+            lambda x: 'Имеется в реестре' if x == 'both' else 'Отсутствует в реестре')
+
+        # Получаем текущую дату
+        current_time = time.strftime('%H_%M_%S %d.%m.%Y')
+        # Сохраняем отчет
+        # Для того чтобы увеличить ширину колонок для удобства чтения используем openpyxl
+        wb = openpyxl.Workbook()  # Создаем объект
+        # Записываем результаты
+        for row in dataframe_to_rows(out_df, index=False, header=True):
+            wb['Sheet'].append(row)
+
+        # Форматирование итоговой таблицы
+        # Ширина колонок
+        wb['Sheet'].column_dimensions['A'].width = 15
+        wb['Sheet'].column_dimensions['B'].width = 20
+        wb['Sheet'].column_dimensions['C'].width = 10
+        wb['Sheet'].column_dimensions['F'].width = 36
+        wb['Sheet'].column_dimensions['L'].width = 20
+        # Перенос строк для заголовков
+        wb['Sheet']['D1'].alignment = Alignment(wrap_text=True)
+        wb['Sheet']['E1'].alignment = Alignment(wrap_text=True)
+        wb['Sheet']['F1'].alignment = Alignment(wrap_text=True)
+        wb['Sheet']['G1'].alignment = Alignment(wrap_text=True)
+        wb['Sheet']['H1'].alignment = Alignment(wrap_text=True)
+
+        wb.save(
+            f'{path_to_end_folder}/Сравнение УПП с другими ведомостями на наличие участков или их отсутствие от  {current_time}.xlsx')
+    except ValueError as e:
+        messagebox.showerror('Артемида 1.2',
+                             f'Не найдена колонка или лист {e.args}\nДанные в файле должны находиться на листе с названием Реестр УПП'
+                             f'\nКолонки 1-8 должны иметь названия: Лесничество,Участковое лесничество,Урочище ,Номер лесного квартала,\n'
+                             f'Номер лесотаксационного выдела,Площадь лесотаксационного выдела, га,Обозначение части лесотаксационного выдела (лесопатологического выдела), га ,'
+                             f'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га')
+    except NameError:
+        messagebox.showerror('Артемида 1.2', f'Выберите файл с данными и конечную папку')
+    except PermissionError:
+        messagebox.showerror('Артемида 1.2', f'Закройте файлы с созданными раньше отчетами!!!')
+    else:
+        messagebox.showinfo('Артемида 1.2', 'Работа программы успешно завершена!!!')
+
+
 def combine(x):
     # Функция для группировки всех значений в строку разделенную ;
     return ';'.join(x)
@@ -77,7 +199,7 @@ def main_check_unique(x):
         try:
             return float(temp_lst[0])
         except ValueError:
-            messagebox.showerror('Артемида 1.1',
+            messagebox.showerror('Артемида 1.2',
                                  f'При обработке значения {x} в столбце с числовыми данными возникла ошибка\n'
                                  f'Исправьте это значение и попробуйте заново')
 
@@ -133,11 +255,40 @@ def prepare_column_purpose_category(df,name_columns):
         df[name_columns] = df[name_columns].astype(int)
         df[name_columns] = df[name_columns].astype(str)
     except KeyError as e:
-        messagebox.showerror('Артемида 1.1',f'Не найдена колонка {e.args} Проверьте файл на наличие этой колонки')
+        messagebox.showerror('Артемида 1.2',f'Не найдена колонка {e.args} Проверьте файл на наличие этой колонки')
     except ValueError as e:
-        messagebox.showerror('Артемида 1.1', f'Возникла ошибка при обработке значения {e.args}\n'
+        messagebox.showerror('Артемида 1.2', f'Возникла ошибка при обработке значения {e.args}\n'
                                              f'в колонках целевого назначения и категории должны быть только цифры!')
 
+def convert_columns_to_str(df, number_columns):
+    """
+    Функция для конвертации указанных столбцов в строковый тип и очистки от пробельных символов в начале и конце
+    """
+
+    for column in number_columns:  # Перебираем список нужных колонок
+        df.iloc[:, column] = df.iloc[:, column].astype(str)
+        # Очищаем колонку от пробельных символов с начала и конца
+        df.iloc[:, column] = df.iloc[:, column].apply(lambda x: x.strip())
+        df.iloc[:, column] = df.iloc[:, column].apply(lambda x: x.replace(' ', ''))
+
+
+def convert_params_columns_to_int(lst):
+    """
+    Функция для конвератации значений колонок которые нужно обработать.
+    Очищает от пустых строк, чтобы в итоге остался список из чисел в формате int
+    """
+    out_lst = []  # Создаем список в который будем добавлять только числа
+    for value in lst:  # Перебираем список
+        try:
+            # Обрабатываем случай с нулем, для того чтобы после приведения к питоновскому отсчету от нуля не получилась колонка с номером -1
+            number = int(value)
+            if number != 0:
+                out_lst.append(value)  # Если конвертирования прошло без ошибок то добавляем
+            else:
+                continue
+        except:  # Иначе пропускаем
+            continue
+    return out_lst
 
 def processing_report_square_wood():
     """
@@ -280,18 +431,18 @@ def processing_report_square_wood():
 
 
 
-    except KeyError as e:
-        messagebox.showerror('Артемида 1.1',
+    except ValueError as e:
+        messagebox.showerror('Артемида 1.2',
                              f'Не найдена колонка или лист {e.args}\nДанные в файле должны находиться на листе с названием Реестр УПП'
                              f'\nКолонки 1-8 должны иметь названия: Лесничество,Участковое лесничество,Урочище ,Номер лесного квартала,\n'
                              f'Номер лесотаксационного выдела,Площадь лесотаксационного выдела, га,Обозначение части лесотаксационного выдела (лесопатологического выдела), га ,'
                              f'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га')
     except NameError:
-        messagebox.showerror('Артемида 1.1', f'Выберите файл с данными и конечную папку')
+        messagebox.showerror('Артемида 1.2', f'Выберите файл с данными и конечную папку')
     except PermissionError:
-        messagebox.showerror('Артемида 1.1', f'Закройте файлы с созданными раньше отчетами!!!')
+        messagebox.showerror('Артемида 1.2', f'Закройте файлы с созданными раньше отчетами!!!')
     else:
-        messagebox.showinfo('Артемида 1.1', 'Работа программы успешно завершена!!!')
+        messagebox.showinfo('Артемида 1.2', 'Работа программы успешно завершена!!!')
 
 def proccessing_report_purpose_category():
     """
@@ -323,7 +474,7 @@ def proccessing_report_purpose_category():
         # Применяем функцию првоеряющую количество уникальных значений в столбце, если больше одного то значит есть ошибка в данных
         out_df['Контроль правильности заполнения целевого назначения лесов'] = out_df['Целевое назначение лесов '].apply(
             check_unique)
-        out_df['Контроль одинаковости заполнения категории защитных лесов'] = out_df[
+        out_df['Контроль правильности заполнения категории защитных лесов'] = out_df[
             'Категория защитных лесов (код) '].apply(
             check_unique)
 
@@ -377,22 +528,22 @@ def proccessing_report_purpose_category():
         wb.save(
             f'{path_to_end_folder}/Проверка правильности ввода целевого назначения лесов и категории защитных лесов {current_time}.xlsx')
     except ValueError as e:
-        messagebox.showerror('Артемида 1.1',
+        messagebox.showerror('Артемида 1.2',
                              f'Не найдена колонка или лист {e.args}\nДанные в файле должны находиться на листе с названием Реестр УПП'
                              f'\nВ файле должны быть колонки: Лесничество,Участковое лесничество,Урочище ,Номер лесного квартала,\n'
                              f'Номер лесотаксационного выдела,Целевое назначение лесов ,Категория защитных лесов (код) ')
     except NameError:
-        messagebox.showerror('Артемида 1.1', f'Выберите файл с данными и конечную папку')
+        messagebox.showerror('Артемида 1.2', f'Выберите файл с данными и конечную папку')
     except PermissionError:
-        messagebox.showerror('Артемида 1.1', f'Закройте файлы с созданными раньше отчетами!!!')
+        messagebox.showerror('Артемида 1.2', f'Закройте файлы с созданными раньше отчетами!!!')
     else:
-        messagebox.showinfo('Артемида 1.1', 'Работа программы успешно завершена!!!')
+        messagebox.showinfo('Артемида 1.2', 'Работа программы успешно завершена!!!')
 
 
 if __name__ == '__main__':
     window = Tk()
-    window.title('Артемида 1.1')
-    window.geometry('760x560+600+200')
+    window.title('Артемида 1.2')
+    window.geometry('760x700+600+200')
     window.resizable(False, False)
 
     # Создаем объект вкладок
@@ -439,7 +590,7 @@ if __name__ == '__main__':
                                   )
     btn_proccessing_data.grid(column=0, row=4, padx=10, pady=10)
 
-    # Создаем вкладку обработки данных по площадям выделов
+    # Создаем вкладку обработки данных по целевому назначению и категории защищености
     tab_report_purpose_category = ttk.Frame(tab_control)
     tab_control.add(tab_report_purpose_category, text='Контроль назначения и\n категории защитности')
 
@@ -478,5 +629,58 @@ if __name__ == '__main__':
                                   )
     btn_proccessing_data_purpose.grid(column=0, row=4, padx=10, pady=10)
 
+
+
+    # Создаем вкладку обработки данных по проверке наличия записи в реестре
+    tab_presense_reestr = ttk.Frame(tab_control)
+    tab_control.add(tab_presense_reestr, text='Контроль наличия участка\n в УПП')
+
+    # Создаем метку для описания назначения программы
+    lbl_hello_presense = Label(tab_presense_reestr,
+                      text='Центр защиты леса Республики Бурятия\n'
+                           'Сравнение УПП с другими ведомостями\nна наличие участков\nили их отсутствие')
+    lbl_hello_presense.grid(column=0, row=0, padx=10, pady=25)
+
+
+    # Картинка
+    path_to_img = resource_path('logo.png')
+
+    img_presense = PhotoImage(file=path_to_img)
+    Label(tab_presense_reestr,
+          image=img_presense
+          ).grid(column=1, row=0, padx=10, pady=25)
+
+    # Создаем кнопку Выбрать файл с номера колонок по которым будет вестись объединение
+    btn_choose_params_presense = Button(tab_presense_reestr, text='1) Выберите файл\n с параметрами', font=('Arial Bold', 20),
+                             command=select_file_params_presense
+                             )
+    btn_choose_params_presense.grid(column=0, row=2, padx=10, pady=10)
+
+    # Создаем кнопку Выбрать файл с реестром
+    btn_choose_reestr_presense = Button(tab_presense_reestr, text='2) Выберите файл\n реестра УПП', font=('Arial Bold', 20),
+                             command=select_file_reestr_presense
+                             )
+    btn_choose_reestr_presense.grid(column=0, row=3, padx=10, pady=10)
+
+    # Создаем кнопку Выбрать файл с ведомостью
+    btn_choose_statement_presense = Button(tab_presense_reestr, text='3) Выберите файл ведомости', font=('Arial Bold', 20),
+                             command=select_file_statement_presense
+                             )
+    btn_choose_statement_presense.grid(column=0, row=4, padx=10, pady=10)
+
+
+    # Создаем кнопку для выбора папки куда будут генерироваться файлы
+
+    btn_choose_end_folder_presense = Button(tab_presense_reestr, text='4) Выберите конечную папку', font=('Arial Bold', 20),
+                                   command=select_end_folder
+                                   )
+    btn_choose_end_folder_presense.grid(column=0, row=5, padx=10, pady=10)
+
+    # Создаем кнопку обработки данных
+
+    btn_proccessing_data_presense = Button(tab_presense_reestr, text='5) Обработать данные', font=('Arial Bold', 20),
+                                  command=processing_presense_reestr
+                                  )
+    btn_proccessing_data_presense.grid(column=0, row=6, padx=10, pady=10)
 
     window.mainloop()

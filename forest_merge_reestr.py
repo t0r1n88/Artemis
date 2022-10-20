@@ -43,12 +43,12 @@ def convert_params_columns_to_int(lst):
     return out_lst
 
 
-file_params = 'data/params.xlsx'
+file_params_presense = 'data/params.xlsx'
 path_to_end_folder = 'data/'
-params = pd.read_excel(file_params, header=None,
+params = pd.read_excel(file_params_presense, header=None,
                        keep_default_na=False)  # получаем файл с порядковыми номерами колонок которые нужно сравнивать
-file_reestr_upp = 'data/Сравнение УПП с другими ведомостями на наличие участков или их отсутствие/2022-10-27_64_Реестр УПП с дополнительными колонками..xlsx'
-file_statement_on_reestr = 'data/Сравнение УПП с другими ведомостями на наличие участков или их отсутствие/Ведомость.xlsx'
+file_reestr_presense = 'data/Сравнение УПП с другими ведомостями на наличие участков или их отсутствие/2022-10-27_64_Реестр УПП с дополнительными колонками..xlsx'
+file_statement_presense = 'data/Сравнение УПП с другими ведомостями на наличие участков или их отсутствие/Ведомость.xlsx'
 
 # Преврашаем каждую колонку в список
 params_first_columns = params[0].tolist()
@@ -63,9 +63,9 @@ int_params_first_columns = list(map(lambda x: x - 1, int_params_first_columns))
 int_params_second_columns = list(map(lambda x: x - 1, int_params_second_columns))
 
 # Считываем из файлов только те колонки по которым будет вестись сравнение
-first_df = pd.read_excel(file_reestr_upp,
+first_df = pd.read_excel(file_reestr_presense,
                          skiprows=6, usecols=int_params_first_columns, keep_default_na=False)
-second_df = pd.read_excel(file_statement_on_reestr, usecols=int_params_second_columns, keep_default_na=False)
+second_df = pd.read_excel(file_statement_presense, usecols=int_params_second_columns, keep_default_na=False)
 # Конвертируем нужные нам колонки в str
 convert_columns_to_str(first_df, int_params_first_columns)
 convert_columns_to_str(second_df, int_params_second_columns)
