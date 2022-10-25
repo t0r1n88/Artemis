@@ -48,7 +48,7 @@ def convert_to_float(x):
 
 
 
-file_data_xlsx = 'data/Соответствие площади выдела/2022-10-27_64_Реестр УПП с дополнительными колонками..xlsx'
+file_data_xlsx = 'data/2022-10-27_64_Реестр УПП с дополнительными колонками..xlsx'
 path_to_end_folder = 'data/'
 
 df = pd.read_excel(file_data_xlsx,skiprows=8)
