@@ -54,9 +54,8 @@ def convert_to_float(x):
     """
     # очищаем от пробелов и возможных заполнения ячейки пробелом
 
-    temp_str = x.strip()
     try:
-        return float(temp_str)
+        return float(x)
     except ValueError:
         return 0
 
