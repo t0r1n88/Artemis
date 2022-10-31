@@ -186,19 +186,19 @@ def processing_presense_reestr():
         wb.save(
             f'{path_to_end_folder}/Сравнение УПП с другими ведомостями на наличие участков или их отсутствие от  {current_time}.xlsx')
     except ValueError as e:
-        messagebox.showerror('Артемида 1.3',
+        messagebox.showerror('Артемида 1.4',
                              f'Не найдена колонка или лист {e.args}\nДанные в файле должны находиться на листе с названием Реестр УПП'
                              f'\nКолонки 1-8 должны иметь названия: Лесничество,Участковое лесничество,Урочище ,Номер лесного квартала,\n'
                              f'Номер лесотаксационного выдела,Площадь лесотаксационного выдела, га,Обозначение части лесотаксационного выдела (лесопатологического выдела), га ,'
                              f'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га')
     except NameError:
-        messagebox.showerror('Артемида 1.3', f'Выберите файл с данными и конечную папку')
+        messagebox.showerror('Артемида 1.4', f'Выберите файл с данными и конечную папку')
     except PermissionError:
-        messagebox.showerror('Артемида 1.3', f'Закройте файлы с созданными раньше отчетами!!!')
+        messagebox.showerror('Артемида 1.4', f'Закройте файлы с созданными раньше отчетами!!!')
     except FileNotFoundError:
-        messagebox.showerror('Артемида 1.3', f'Проверьте наличие указанных файлов')
+        messagebox.showerror('Артемида 1.4', f'Проверьте наличие указанных файлов')
     else:
-        messagebox.showinfo('Артемида 1.3', 'Работа программы успешно завершена!!!')
+        messagebox.showinfo('Артемида 1.4', 'Работа программы успешно завершена!!!')
 
 def convert_to_int_transfer(cell):
     """
@@ -286,9 +286,9 @@ def prepare_column_purpose_category(df,name_columns):
         df[name_columns] = df[name_columns].astype(int)
         df[name_columns] = df[name_columns].astype(str)
     except KeyError as e:
-            messagebox.showerror('Артемида 1.3',f'Не найдена колонка {e.args} Проверьте файл на наличие этой колонки')
+            messagebox.showerror('Артемида 1.4',f'Не найдена колонка {e.args} Проверьте файл на наличие этой колонки')
     except ValueError as e:
-        messagebox.showerror('Артемида 1.3', f'Возникла ошибка при обработке значения {e.args}\n'
+        messagebox.showerror('Артемида 1.4', f'Возникла ошибка при обработке значения {e.args}\n'
                                              f'в колонках целевого назначения и категории должны быть только цифры!')
 
 def convert_columns_to_str(df, number_columns):
@@ -488,19 +488,19 @@ def processing_report_square_wood():
 
 
     except ValueError as e:
-        messagebox.showerror('Артемида 1.3',
+        messagebox.showerror('Артемида 1.4',
                              f'Не найдена колонка или лист {e.args}\nДанные в файле должны находиться на листе с названием Реестр УПП'
                              f'\nКолонки 1-8 должны иметь названия: Лесничество,Участковое лесничество,Урочище ,Номер лесного квартала,\n'
                              f'Номер лесотаксационного выдела,Площадь лесотаксационного выдела, га,Обозначение части лесотаксационного выдела (лесопатологического выдела), га ,'
                              f'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га')
     except NameError:
-        messagebox.showerror('Артемида 1.3', f'Выберите файл с данными и конечную папку')
+        messagebox.showerror('Артемида 1.4', f'Выберите файл с данными и конечную папку')
     except FileNotFoundError:
-        messagebox.showerror('Артемида 1.3', f'Проверьте наличие указанных файлов')
+        messagebox.showerror('Артемида 1.4', f'Проверьте наличие указанных файлов')
     except PermissionError:
-        messagebox.showerror('Артемида 1.3', f'Закройте файлы с созданными раньше отчетами!!!')
+        messagebox.showerror('Артемида 1.4', f'Закройте файлы с созданными раньше отчетами!!!')
     else:
-        messagebox.showinfo('Артемида 1.3', 'Работа программы успешно завершена!!!')
+        messagebox.showinfo('Артемида 1.4', 'Работа программы успешно завершена!!!')
 
 def proccessing_report_purpose_category():
     """
@@ -566,8 +566,9 @@ def proccessing_report_purpose_category():
                                'Категория защитных лесов (код)': 'Показатели категории защитных лесов для данного выдела'},
                       inplace=True)
 
-        out_df['Итоговый контроль защитных лесов'] = (out_df['Контроль назначения лесов'] == 1) & (
-                    out_df['Контроль категории защитных лесов'] == 0)
+        # находим итог
+        out_df['Итоговый контроль защитных лесов'] = ((out_df['Контроль назначения лесов'] == 1) | (
+                    out_df['Контроль назначения лесов'] == 0)) & (out_df['Контроль категории защитных лесов'] == 0)
 
         out_df['Итоговый контроль защитных лесов'] = out_df['Итоговый контроль защитных лесов'].apply(
             lambda
@@ -604,18 +605,18 @@ def proccessing_report_purpose_category():
         wb.save(
             f'{path_to_end_folder}/Проверка правильности ввода целевого назначения лесов и категории защитных лесов {current_time}.xlsx')
     except ValueError as e:
-        messagebox.showerror('Артемида 1.3',
+        messagebox.showerror('Артемида 1.4',
                              f'Не найдена колонка или лист {e.args}\nДанные в файле должны находиться на листе с названием Реестр УПП'
                              f'\nВ файле должны быть колонки: Лесничество,Участковое лесничество,Урочище ,Номер лесного квартала,\n'
                              f'Номер лесотаксационного выдела,Целевое назначение лесов ,Категория защитных лесов (код) ')
     except NameError:
-        messagebox.showerror('Артемида 1.3', f'Выберите файл с данными и конечную папку')
+        messagebox.showerror('Артемида 1.4', f'Выберите файл с данными и конечную папку')
     except FileNotFoundError:
-        messagebox.showerror('Артемида 1.3', f'Проверьте наличие указанных файлов')
+        messagebox.showerror('Артемида 1.4', f'Проверьте наличие указанных файлов')
     except PermissionError:
-        messagebox.showerror('Артемида 1.3', f'Закройте файлы с созданными раньше отчетами!!!')
+        messagebox.showerror('Артемида 1.4', f'Закройте файлы с созданными раньше отчетами!!!')
     else:
-        messagebox.showinfo('Артемида 1.3', 'Работа программы успешно завершена!!!')
+        messagebox.showinfo('Артемида 1.4', 'Работа программы успешно завершена!!!')
 
 
 def create_doc_convert_date(cell):
@@ -738,23 +739,23 @@ def proccessing_transfer_table3_to_reestr():
 
         wb.save(f'{path_to_end_folder}/Реестр УПП с добавлением данных из таблицы 3 {current_time}.xlsx')
     except ValueError as e:
-        messagebox.showerror('Артемида 1.3',
+        messagebox.showerror('Артемида 1.4',
                              f'Не найдена колонка или лист {e.args}\nДанные в файле должны находиться на листе с названием Реестр УПП'
                              f'\nВ файле должны быть колонки: Лесничество,Участковое лесничество,Урочище ,Номер лесного квартала,\n'
                              f'Номер лесотаксационного выдела,Целевое назначение лесов ,Категория защитных лесов (код) ')
     except NameError:
-        messagebox.showerror('Артемида 1.3', f'Выберите файл с данными и конечную папку')
+        messagebox.showerror('Артемида 1.4', f'Выберите файл с данными и конечную папку')
     except FileNotFoundError:
-        messagebox.showerror('Артемида 1.3', f'Проверьте наличие указанных файлов')
+        messagebox.showerror('Артемида 1.4', f'Проверьте наличие указанных файлов')
     except PermissionError:
-        messagebox.showerror('Артемида 1.3', f'Закройте файлы с созданными раньше отчетами!!!')
+        messagebox.showerror('Артемида 1.4', f'Закройте файлы с созданными раньше отчетами!!!')
     else:
-        messagebox.showinfo('Артемида 1.3', 'Работа программы успешно завершена!!!')
+        messagebox.showinfo('Артемида 1.4', 'Работа программы успешно завершена!!!')
 
 
 if __name__ == '__main__':
     window = Tk()
-    window.title('Артемида 1.3')
+    window.title('Артемида 1.4')
     window.geometry('760x700+600+200')
     window.resizable(False, False)
 
