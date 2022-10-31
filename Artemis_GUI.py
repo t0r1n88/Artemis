@@ -198,6 +198,14 @@ def processing_presense_reestr():
     else:
         messagebox.showinfo('Артемида 1.3', 'Работа программы успешно завершена!!!')
 
+def convert_to_int_transfer(cell):
+    """
+    Функция для конвертации в int
+    """
+    try:
+        return int(cell)
+    except ValueError:
+        return 0
 
 def combine(x):
     # Функция для группировки всех значений в строку разделенную ;
@@ -625,8 +633,8 @@ def proccessing_transfer_table3_to_reestr():
         # Загружаем датафреймы
         df_upp = pd.read_excel(file_transfer_reestr, skiprows=8)
         df_table_3 = pd.read_excel(file_transfer_to_upp, skiprows=6,
-                                   usecols=[4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26,
-                                            27, 28,
+                                   usecols=[4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25,
+                                            26, 27, 28,
                                             29, 32])
 
         # Приводим названия колонок к строковому виду, чтобы избежать возможных проблем с названиями колонок
@@ -646,7 +654,9 @@ def proccessing_transfer_table3_to_reestr():
         # удаляем лишний столбец с площадью выдела и признаков внесения в реестр
         transfer_df.drop(columns=['30', '33'], inplace=True)
 
+
         transfer_df['17'] = transfer_df['17'].astype(str)  # Приводим колонку к строковому формату
+
 
         # Заменяем категории таблицы 3 на категории Реестра УПП
         transfer_df['17'] = transfer_df['17'].replace(
@@ -654,21 +664,53 @@ def proccessing_transfer_table3_to_reestr():
                    r'141|142|143|144|145|146|147|148|149|150|151|152': '4', 'nan': '0'})
 
 
-
         transfer_df.columns = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16',
-                               '17',
-                               '18', '19', '20', '21', '22', '23', '24']
+                               '17', '18', '19', '20', '21', '22', '23', '24']
 
-        itog_df = pd.concat([df_upp, transfer_df], ignore_index=True)
+
+
+        # Ищем совпадающие участки
+        # Создаем датафрейм для проверки наличия записи в реестре
+        checked_df = df_upp[['1', '2', '3', '4', '5']]
+        checked_df = checked_df.astype(str)  # делаем данные строковыми
+        # Создаем в каждом датафрейме колонку с айди путем склеивания всех нужных колонок в одну строку
+        checked_df['ID'] = checked_df.loc[:, ['1', '2', '3', '4', '5']].sum(axis=1)
+        # Удаляем пробелы
+        checked_df['ID'] = checked_df['ID'].apply(lambda x: x.replace(' ', ''))
+
+        # делаем строковыми первые 5 колонок
+        transfer_df[['1', '2', '3', '4', '5', ]] = transfer_df[['1', '2', '3', '4', '5', ]].astype(str)
+        transfer_df['ID'] = transfer_df.loc[:, ['1', '2', '3', '4', '5']].sum(axis=1)
+        transfer_df['ID'] = transfer_df['ID'].apply(lambda x: x.replace(' ', ''))
+
+        # Мержим по полю айди
+        merged_df = pd.merge(checked_df, transfer_df, how='outer', left_on='ID', right_on='ID', indicator=True)
+
+        # Отбираем только те значения которые есть в правом датафрейме
+        added_df = merged_df[merged_df['_merge'] == 'right_only']
+
+        added_df.drop(columns=['1_x', '2_x', '3_x', '4_x', '5_x', 'ID', '_merge'],
+                      inplace=True)  # удаляем лишние колонки
+
+        added_df.rename(columns={'1_y': '1', '2_y': '2', '3_y': '3', '4_y': '4', '5_y': '5'},
+                        inplace=True)  # переименовываем колонки для корректного добавления
+
+        itog_df = pd.concat([df_upp, added_df], ignore_index=True)
 
         itog_df.sort_values(['1', '2', '3', '4', '5',
                              ], inplace=True)
+
+
 
         # Приводим даты к нормальному виду ДД.ММ.ГГГГ
         itog_df['17'] = pd.to_datetime(itog_df['17'], errors='coerce', dayfirst=True)
         itog_df['22'] = pd.to_datetime(itog_df['22'], errors='coerce', dayfirst=True)
         itog_df['17'] = itog_df['17'].apply(create_doc_convert_date)
         itog_df['22'] = itog_df['22'].apply(create_doc_convert_date)
+
+        # конвертируем в инт номера квартала и выдела
+        itog_df['4'] = itog_df['4'].apply(convert_to_int_transfer)
+        itog_df['5'] = itog_df['5'].apply(convert_to_int_transfer)
 
         # Получаем текущую дату
         current_time = time.strftime('%H_%M_%S %d.%m.%Y')
@@ -678,6 +720,15 @@ def proccessing_transfer_table3_to_reestr():
         # Записываем результаты
         for row in dataframe_to_rows(itog_df, index=False, header=False):
             wb['Реестр УПП'].append(row)
+
+        # Переименовываем после соединения колонки в таблице с добавленными участками
+        added_df.rename(
+            columns={'1': 'Лесничество', '2': 'Участковое лесничество', '3': 'Урочище', '4': 'Номер лесного квартала',
+                     '5': 'Номер лесотаксационного выдела', }, inplace=True)
+
+        # Сохраняем файл с добавляемыми данными, чтобы пользователи знали что именно добавилось
+        added_df.to_excel(f'{path_to_end_folder}/Участки из таблицы 3 добавленные в реестр УПП от {current_time}.xlsx',
+                          index=False)
 
         wb.save(f'{path_to_end_folder}/Реестр УПП с добавлением данных из таблицы 3 {current_time}.xlsx')
     except ValueError as e:
