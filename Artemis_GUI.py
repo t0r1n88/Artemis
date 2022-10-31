@@ -195,6 +195,8 @@ def processing_presense_reestr():
         messagebox.showerror('Артемида 1.3', f'Выберите файл с данными и конечную папку')
     except PermissionError:
         messagebox.showerror('Артемида 1.3', f'Закройте файлы с созданными раньше отчетами!!!')
+    except FileNotFoundError:
+        messagebox.showerror('Артемида 1.3', f'Проверьте наличие указанных файлов')
     else:
         messagebox.showinfo('Артемида 1.3', 'Работа программы успешно завершена!!!')
 
@@ -493,6 +495,8 @@ def processing_report_square_wood():
                              f'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га')
     except NameError:
         messagebox.showerror('Артемида 1.3', f'Выберите файл с данными и конечную папку')
+    except FileNotFoundError:
+        messagebox.showerror('Артемида 1.3', f'Проверьте наличие указанных файлов')
     except PermissionError:
         messagebox.showerror('Артемида 1.3', f'Закройте файлы с созданными раньше отчетами!!!')
     else:
@@ -606,6 +610,8 @@ def proccessing_report_purpose_category():
                              f'Номер лесотаксационного выдела,Целевое назначение лесов ,Категория защитных лесов (код) ')
     except NameError:
         messagebox.showerror('Артемида 1.3', f'Выберите файл с данными и конечную папку')
+    except FileNotFoundError:
+        messagebox.showerror('Артемида 1.3', f'Проверьте наличие указанных файлов')
     except PermissionError:
         messagebox.showerror('Артемида 1.3', f'Закройте файлы с созданными раньше отчетами!!!')
     else:
@@ -738,6 +744,8 @@ def proccessing_transfer_table3_to_reestr():
                              f'Номер лесотаксационного выдела,Целевое назначение лесов ,Категория защитных лесов (код) ')
     except NameError:
         messagebox.showerror('Артемида 1.3', f'Выберите файл с данными и конечную папку')
+    except FileNotFoundError:
+        messagebox.showerror('Артемида 1.3', f'Проверьте наличие указанных файлов')
     except PermissionError:
         messagebox.showerror('Артемида 1.3', f'Закройте файлы с созданными раньше отчетами!!!')
     else:
@@ -775,7 +783,7 @@ if __name__ == '__main__':
           ).grid(column=1, row=0, padx=10, pady=25)
 
     # Создаем кнопку Выбрать файл с данными
-    btn_choose_data = Button(tab_report_square, text='1) Выберите файл с данными', font=('Arial Bold', 20),
+    btn_choose_data = Button(tab_report_square, text='1) Выберите файл\nреестра УПП', font=('Arial Bold', 20),
                              command=select_file_data_xlsx
                              )
     btn_choose_data.grid(column=0, row=2, padx=10, pady=10)
@@ -814,7 +822,7 @@ if __name__ == '__main__':
           ).grid(column=1, row=0, padx=10, pady=25)
 
     # Создаем кнопку Выбрать файл с данными
-    btn_choose_data_purpose = Button(tab_report_purpose_category, text='1) Выберите файл с данными', font=('Arial Bold', 20),
+    btn_choose_data_purpose = Button(tab_report_purpose_category, text='1) Выберите файл\nреестра УПП', font=('Arial Bold', 20),
                              command=select_file_reestr_purpose
                              )
     btn_choose_data_purpose.grid(column=0, row=2, padx=10, pady=10)
@@ -839,7 +847,7 @@ if __name__ == '__main__':
     Создаем вкладку обработки данных по проверке наличия записи в реестре
     """
     tab_presense_reestr = ttk.Frame(tab_control)
-    tab_control.add(tab_presense_reestr, text='Контроль наличия\nучастка в УПП')
+    tab_control.add(tab_presense_reestr, text='Контроль наличия\nвыделов в УПП')
 
     # Создаем метку для описания назначения программы
     lbl_hello_presense = Label(tab_presense_reestr,
@@ -856,38 +864,32 @@ if __name__ == '__main__':
           image=img_presense
           ).grid(column=1, row=0, padx=10, pady=25)
 
-    # Создаем кнопку Выбрать файл с номера колонок по которым будет вестись объединение
-    btn_choose_params_presense = Button(tab_presense_reestr, text='1) Выберите файл\n с параметрами', font=('Arial Bold', 20),
-                             command=select_file_params_presense
-                             )
-    btn_choose_params_presense.grid(column=0, row=2, padx=10, pady=10)
-
     # Создаем кнопку Выбрать файл с реестром
-    btn_choose_reestr_presense = Button(tab_presense_reestr, text='2) Выберите файл\n реестра УПП', font=('Arial Bold', 20),
+    btn_choose_reestr_presense = Button(tab_presense_reestr, text='1) Выберите файл\n реестра УПП', font=('Arial Bold', 20),
                              command=select_file_reestr_presense
                              )
-    btn_choose_reestr_presense.grid(column=0, row=3, padx=10, pady=10)
+    btn_choose_reestr_presense.grid(column=0, row=2, padx=10, pady=10)
 
     # Создаем кнопку Выбрать файл с ведомостью
-    btn_choose_statement_presense = Button(tab_presense_reestr, text='3) Выберите файл ведомости', font=('Arial Bold', 20),
+    btn_choose_statement_presense = Button(tab_presense_reestr, text='2) Выберите файл ведомости', font=('Arial Bold', 20),
                              command=select_file_statement_presense
                              )
-    btn_choose_statement_presense.grid(column=0, row=4, padx=10, pady=10)
+    btn_choose_statement_presense.grid(column=0, row=3, padx=10, pady=10)
 
 
     # Создаем кнопку для выбора папки куда будут генерироваться файлы
 
-    btn_choose_end_folder_presense = Button(tab_presense_reestr, text='4) Выберите конечную папку', font=('Arial Bold', 20),
+    btn_choose_end_folder_presense = Button(tab_presense_reestr, text='3) Выберите конечную папку', font=('Arial Bold', 20),
                                    command=select_end_folder
                                    )
-    btn_choose_end_folder_presense.grid(column=0, row=5, padx=10, pady=10)
+    btn_choose_end_folder_presense.grid(column=0, row=4, padx=10, pady=10)
 
     # Создаем кнопку обработки данных
 
-    btn_proccessing_data_presense = Button(tab_presense_reestr, text='5) Обработать данные', font=('Arial Bold', 20),
+    btn_proccessing_data_presense = Button(tab_presense_reestr, text='4) Обработать данные', font=('Arial Bold', 20),
                                   command=processing_presense_reestr
                                   )
-    btn_proccessing_data_presense.grid(column=0, row=6, padx=10, pady=10)
+    btn_proccessing_data_presense.grid(column=0, row=5, padx=10, pady=10)
 
     """
     Создаем вкладку Перенос данных из таблицы 3 в реестр
