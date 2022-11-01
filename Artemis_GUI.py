@@ -197,6 +197,9 @@ def processing_presense_reestr():
         messagebox.showerror('Артемида 1.4', f'Закройте файлы с созданными раньше отчетами!!!')
     except FileNotFoundError:
         messagebox.showerror('Артемида 1.4', f'Проверьте наличие указанных файлов')
+    except MemoryError:
+        messagebox.showerror('Артемида 1.4', f'Слишком большая таблица!!!\nПроверьте размер таблицы!!!\nНажмите CTRL+END для проверки'
+                                             f'Пересоздайте файл без пустых строк и столбцов')
     else:
         messagebox.showinfo('Артемида 1.4', 'Работа программы успешно завершена!!!')
 
@@ -499,6 +502,9 @@ def processing_report_square_wood():
         messagebox.showerror('Артемида 1.4', f'Проверьте наличие указанных файлов')
     except PermissionError:
         messagebox.showerror('Артемида 1.4', f'Закройте файлы с созданными раньше отчетами!!!')
+    except MemoryError:
+        messagebox.showerror('Артемида 1.4', f'Слишком большая таблица!!!\nПроверьте размер таблицы!!!\nНажмите CTRL+END для проверки'
+                                             f'Пересоздайте файл без пустых строк и столбцов')
     else:
         messagebox.showinfo('Артемида 1.4', 'Работа программы успешно завершена!!!')
 
@@ -615,6 +621,9 @@ def proccessing_report_purpose_category():
         messagebox.showerror('Артемида 1.4', f'Проверьте наличие указанных файлов')
     except PermissionError:
         messagebox.showerror('Артемида 1.4', f'Закройте файлы с созданными раньше отчетами!!!')
+    except MemoryError:
+        messagebox.showerror('Артемида 1.4', f'Слишком большая таблица!!!\nПроверьте размер таблицы!!!\nНажмите CTRL+END для проверки'
+                                             f'Пересоздайте файл без пустых строк и столбцов')
     else:
         messagebox.showinfo('Артемида 1.4', 'Работа программы успешно завершена!!!')
 
@@ -749,6 +758,9 @@ def proccessing_transfer_table3_to_reestr():
         messagebox.showerror('Артемида 1.4', f'Проверьте наличие указанных файлов')
     except PermissionError:
         messagebox.showerror('Артемида 1.4', f'Закройте файлы с созданными раньше отчетами!!!')
+    except MemoryError:
+        messagebox.showerror('Артемида 1.4', f'Слишком большая таблица!!!\nПроверьте размер таблицы!!!\nНажмите CTRL+END для проверки'
+                                             f'Пересоздайте файл без пустых строк и столбцов')
     else:
         messagebox.showinfo('Артемида 1.4', 'Работа программы успешно завершена!!!')
 
