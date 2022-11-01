@@ -768,7 +768,7 @@ def proccessing_transfer_table3_to_reestr():
 if __name__ == '__main__':
     window = Tk()
     window.title('Артемида 1.4')
-    window.geometry('760x700+600+200')
+    window.geometry('760x750+600+200')
     window.resizable(False, False)
 
     # Создаем объект вкладок
@@ -795,27 +795,42 @@ if __name__ == '__main__':
           image=img
           ).grid(column=1, row=0, padx=10, pady=25)
 
+    # Переключатель:Бурятия или Якутия
+    # Создаем переменную хранящую регион, в зависимости от значения будет происходить обработка
+    group_rb_region_report_square = IntVar()
+    group_rb_region_report_square.set(0) # Устанавливаем значение по умолчанию
+    # Создаем фрейм для размещения переключателей(pack и грид не используются в одном контейнере)
+    frame_rb_region_report_square = LabelFrame(tab_report_square, text='1) Выберите регион')
+    frame_rb_region_report_square.grid(column=0, row=1, padx=10)
+    Radiobutton(frame_rb_region_report_square, text='Бурятия', variable=group_rb_region_report_square, value=0).pack()
+    Radiobutton(frame_rb_region_report_square, text='Саха(Якутия)', variable=group_rb_region_report_square, value=1).pack()
+
+
+
+
     # Создаем кнопку Выбрать файл с данными
-    btn_choose_data = Button(tab_report_square, text='1) Выберите файл\nреестра УПП', font=('Arial Bold', 20),
+    btn_choose_data = Button(tab_report_square, text='2) Выберите файл\nреестра УПП', font=('Arial Bold', 20),
                              command=select_file_data_xlsx
                              )
-    btn_choose_data.grid(column=0, row=2, padx=10, pady=10)
+    btn_choose_data.grid(column=0, row=3, padx=10, pady=10)
 
     # Создаем кнопку для выбора папки куда будут генерироваться файлы
 
-    btn_choose_end_folder = Button(tab_report_square, text='2) Выберите конечную папку', font=('Arial Bold', 20),
+    btn_choose_end_folder = Button(tab_report_square, text='3) Выберите конечную папку', font=('Arial Bold', 20),
                                    command=select_end_folder
                                    )
-    btn_choose_end_folder.grid(column=0, row=3, padx=10, pady=10)
+    btn_choose_end_folder.grid(column=0, row=4, padx=10, pady=10)
 
     # Создаем кнопку обработки данных
 
-    btn_proccessing_data = Button(tab_report_square, text='3) Обработать данные', font=('Arial Bold', 20),
+    btn_proccessing_data = Button(tab_report_square, text='4) Обработать данные', font=('Arial Bold', 20),
                                   command=processing_report_square_wood
                                   )
-    btn_proccessing_data.grid(column=0, row=4, padx=10, pady=10)
+    btn_proccessing_data.grid(column=0, row=5, padx=10, pady=10)
 
-    # Создаем вкладку обработки данных по целевому назначению и категории защищености
+    """
+    Создаем вкладку обработки данных по целевому назначению и категории защищености
+    """
     tab_report_purpose_category = ttk.Frame(tab_control)
     tab_control.add(tab_report_purpose_category, text='Контроль назначения и\n категории защитности')
 
@@ -834,26 +849,35 @@ if __name__ == '__main__':
           image=img_purpose
           ).grid(column=1, row=0, padx=10, pady=25)
 
+    # Переключатель:Бурятия или Якутия
+    # Создаем переменную хранящую регион, в зависимости от значения будет происходить обработка
+    group_rb_region_purpose_category = IntVar()
+    group_rb_region_purpose_category.set(0)  # Устанавливаем значение по умолчанию
+    # Создаем фрейм для размещения переключателей(pack и грид не используются в одном контейнере)
+    frame_rb_region_purpose_category = LabelFrame(tab_report_purpose_category, text='1) Выберите регион')
+    frame_rb_region_purpose_category.grid(column=0, row=1, padx=10)
+    Radiobutton(frame_rb_region_purpose_category, text='Бурятия', variable=group_rb_region_purpose_category, value=0).pack()
+    Radiobutton(frame_rb_region_purpose_category, text='Саха(Якутия)', variable=group_rb_region_purpose_category, value=1).pack()
+
     # Создаем кнопку Выбрать файл с данными
-    btn_choose_data_purpose = Button(tab_report_purpose_category, text='1) Выберите файл\nреестра УПП', font=('Arial Bold', 20),
+    btn_choose_data_purpose = Button(tab_report_purpose_category, text='2) Выберите файл\nреестра УПП', font=('Arial Bold', 20),
                              command=select_file_reestr_purpose
                              )
     btn_choose_data_purpose.grid(column=0, row=2, padx=10, pady=10)
 
     # Создаем кнопку для выбора папки куда будут генерироваться файлы
 
-    btn_choose_end_folder_purpose = Button(tab_report_purpose_category, text='2) Выберите конечную папку', font=('Arial Bold', 20),
+    btn_choose_end_folder_purpose = Button(tab_report_purpose_category, text='3) Выберите конечную папку', font=('Arial Bold', 20),
                                    command=select_end_folder
                                    )
     btn_choose_end_folder_purpose.grid(column=0, row=3, padx=10, pady=10)
 
     # Создаем кнопку обработки данных
 
-    btn_proccessing_data_purpose = Button(tab_report_purpose_category, text='3) Обработать данные', font=('Arial Bold', 20),
+    btn_proccessing_data_purpose = Button(tab_report_purpose_category, text='4) Обработать данные', font=('Arial Bold', 20),
                                   command=proccessing_report_purpose_category
                                   )
     btn_proccessing_data_purpose.grid(column=0, row=4, padx=10, pady=10)
-
 
 
     """
@@ -877,14 +901,24 @@ if __name__ == '__main__':
           image=img_presense
           ).grid(column=1, row=0, padx=10, pady=25)
 
+    # Переключатель:Бурятия или Якутия
+    # Создаем переменную хранящую регион, в зависимости от значения будет происходить обработка
+    group_rb_region_presense_reestr = IntVar()
+    group_rb_region_presense_reestr.set(0)  # Устанавливаем значение по умолчанию
+    # Создаем фрейм для размещения переключателей(pack и грид не используются в одном контейнере)
+    frame_rb_region_presense_reestr = LabelFrame(tab_presense_reestr, text='1) Выберите регион')
+    frame_rb_region_presense_reestr.grid(column=0, row=1, padx=10)
+    Radiobutton(frame_rb_region_presense_reestr, text='Бурятия', variable=group_rb_region_presense_reestr, value=0).pack()
+    Radiobutton(frame_rb_region_presense_reestr, text='Саха(Якутия)', variable=group_rb_region_presense_reestr, value=1).pack()
+
     # Создаем кнопку Выбрать файл с реестром
-    btn_choose_reestr_presense = Button(tab_presense_reestr, text='1) Выберите файл\n реестра УПП', font=('Arial Bold', 20),
+    btn_choose_reestr_presense = Button(tab_presense_reestr, text='2) Выберите файл\n реестра УПП', font=('Arial Bold', 20),
                              command=select_file_reestr_presense
                              )
     btn_choose_reestr_presense.grid(column=0, row=2, padx=10, pady=10)
 
     # Создаем кнопку Выбрать файл с ведомостью
-    btn_choose_statement_presense = Button(tab_presense_reestr, text='2) Выберите файл ведомости', font=('Arial Bold', 20),
+    btn_choose_statement_presense = Button(tab_presense_reestr, text='3) Выберите файл ведомости', font=('Arial Bold', 20),
                              command=select_file_statement_presense
                              )
     btn_choose_statement_presense.grid(column=0, row=3, padx=10, pady=10)
@@ -892,14 +926,14 @@ if __name__ == '__main__':
 
     # Создаем кнопку для выбора папки куда будут генерироваться файлы
 
-    btn_choose_end_folder_presense = Button(tab_presense_reestr, text='3) Выберите конечную папку', font=('Arial Bold', 20),
+    btn_choose_end_folder_presense = Button(tab_presense_reestr, text='4) Выберите конечную папку', font=('Arial Bold', 20),
                                    command=select_end_folder
                                    )
     btn_choose_end_folder_presense.grid(column=0, row=4, padx=10, pady=10)
 
     # Создаем кнопку обработки данных
 
-    btn_proccessing_data_presense = Button(tab_presense_reestr, text='4) Обработать данные', font=('Arial Bold', 20),
+    btn_proccessing_data_presense = Button(tab_presense_reestr, text='5) Обработать данные', font=('Arial Bold', 20),
                                   command=processing_presense_reestr
                                   )
     btn_proccessing_data_presense.grid(column=0, row=5, padx=10, pady=10)
@@ -924,20 +958,31 @@ if __name__ == '__main__':
           image=img_transfer_3_to_reestr
           ).grid(column=1, row=0, padx=10, pady=25)
 
+    # Переключатель:Бурятия или Якутия
+    # Создаем переменную хранящую регион, в зависимости от значения будет происходить обработка
+    group_rb_region_transfer_3_to_reestr = IntVar()
+    group_rb_region_transfer_3_to_reestr.set(0)  # Устанавливаем значение по умолчанию
+    # Создаем фрейм для размещения переключателей(pack и грид не используются в одном контейнере)
+    frame_rb_region_transfer_3_to_reestr = LabelFrame(tab_transfer_3_to_reestr, text='1) Выберите регион')
+    frame_rb_region_transfer_3_to_reestr.grid(column=0, row=1, padx=10)
+    Radiobutton(frame_rb_region_transfer_3_to_reestr, text='Бурятия', variable=group_rb_region_transfer_3_to_reestr, value=0).pack()
+    Radiobutton(frame_rb_region_transfer_3_to_reestr, text='Саха(Якутия)', variable=group_rb_region_transfer_3_to_reestr, value=1).pack()
+
+
     # Создаем кнопку Выбрать файл с заголовком
-    btn_choose_header_transfer_3_to_reestr = Button(tab_transfer_3_to_reestr, text='1) Выберите файл\n с заголовком файла реестра УПП', font=('Arial Bold', 18),
+    btn_choose_header_transfer_3_to_reestr = Button(tab_transfer_3_to_reestr, text='2) Выберите файл\n с заголовком файла реестра УПП', font=('Arial Bold', 18),
                              command=select_header_reestr
                              )
     btn_choose_header_transfer_3_to_reestr.grid(column=0, row=2, padx=10, pady=10)
 
     # Создаем кнопку выбора файла с реестром
-    btn_choose_reestr_transfer3 = Button(tab_transfer_3_to_reestr, text='2) Выберите файл\nреестра УПП', font=('Arial Bold', 18),
+    btn_choose_reestr_transfer3 = Button(tab_transfer_3_to_reestr, text='3) Выберите файл\nреестра УПП', font=('Arial Bold', 18),
                              command=select_reestr_transfer3
                              )
     btn_choose_reestr_transfer3.grid(column=0, row=3, padx=10, pady=10)
 
     #Создаем кнопку выбора файла с таблицей 3
-    btn_choose_table3_transfer3 = Button(tab_transfer_3_to_reestr, text='3) Выберите файл\nс таблицей 3', font=('Arial Bold', 18),
+    btn_choose_table3_transfer3 = Button(tab_transfer_3_to_reestr, text='4) Выберите файл\nс таблицей 3', font=('Arial Bold', 18),
                              command=select_table3_transfer3
                              )
     btn_choose_table3_transfer3.grid(column=0, row=4, padx=10, pady=10)
@@ -945,14 +990,14 @@ if __name__ == '__main__':
     # Создаем кнопку выбора конечной папки
     # Создаем кнопку для выбора папки куда будут генерироваться файлы
 
-    btn_choose_end_folder_transfer3 = Button(tab_transfer_3_to_reestr, text='4) Выберите конечную папку', font=('Arial Bold', 18),
+    btn_choose_end_folder_transfer3 = Button(tab_transfer_3_to_reestr, text='5) Выберите конечную папку', font=('Arial Bold', 18),
                                    command=select_end_folder
                                    )
     btn_choose_end_folder_transfer3.grid(column=0, row=5, padx=10, pady=10)
 
     # Создаем кнопку обработки данных
 
-    btn_proccessing_transfer_table3_to_reestr = Button(tab_transfer_3_to_reestr, text='5) Обработать данные', font=('Arial Bold', 18),
+    btn_proccessing_transfer_table3_to_reestr = Button(tab_transfer_3_to_reestr, text='6) Обработать данные', font=('Arial Bold', 18),
                                   command=proccessing_transfer_table3_to_reestr
                                   )
     btn_proccessing_transfer_table3_to_reestr.grid(column=0, row=6, padx=10, pady=10)
