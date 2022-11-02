@@ -646,8 +646,11 @@ def proccessing_transfer_table3_to_reestr():
     :return:
     """
     try:
+        # Создаем список колонок которые нужно загрузить
+        use_cols = list(range(25))
+
         # Загружаем датафреймы
-        df_upp = pd.read_excel(file_transfer_reestr, skiprows=8)
+        df_upp = pd.read_excel(file_transfer_reestr, skiprows=8, usecols=use_cols)
         df_table_3 = pd.read_excel(file_transfer_to_upp, skiprows=6,
                                    usecols=[4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25,
                                             26, 27, 28,
@@ -670,83 +673,205 @@ def proccessing_transfer_table3_to_reestr():
         # удаляем лишний столбец с площадью выдела и признаков внесения в реестр
         transfer_df.drop(columns=['30', '33'], inplace=True)
 
-
         transfer_df['17'] = transfer_df['17'].astype(str)  # Приводим колонку к строковому формату
 
-
+        transfer_df['17'] = transfer_df['17'].apply(lambda x: x.replace(' ', ''))
         # Заменяем категории таблицы 3 на категории Реестра УПП
         transfer_df['17'] = transfer_df['17'].replace(
             regex={'120': '2', '100': '1', r'130|131|132|133|134|135|136': '3',
                    r'141|142|143|144|145|146|147|148|149|150|151|152': '4', 'nan': '0'})
 
-
         transfer_df.columns = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16',
                                '17', '18', '19', '20', '21', '22', '23', '24']
 
 
+        # Получаем значение кнопки
+        region = group_rb_region_transfer_3_to_reestr.get()
 
-        # Ищем совпадающие участки
-        # Создаем датафрейм для проверки наличия записи в реестре
-        checked_df = df_upp[['1', '2', '3', '4', '5']]
-        checked_df = checked_df.astype(str)  # делаем данные строковыми
-        # Создаем в каждом датафрейме колонку с айди путем склеивания всех нужных колонок в одну строку
-        checked_df['ID'] = checked_df.loc[:, ['1', '2', '3', '4', '5']].sum(axis=1)
-        # Удаляем пробелы
-        checked_df['ID'] = checked_df['ID'].apply(lambda x: x.replace(' ', ''))
+        # Бурятия
+        if region == 0:
 
-        # делаем строковыми первые 5 колонок
-        transfer_df[['1', '2', '3', '4', '5', ]] = transfer_df[['1', '2', '3', '4', '5', ]].astype(str)
-        transfer_df['ID'] = transfer_df.loc[:, ['1', '2', '3', '4', '5']].sum(axis=1)
-        transfer_df['ID'] = transfer_df['ID'].apply(lambda x: x.replace(' ', ''))
+            # Создаем датафрейм для проверки наличия записи в реестре
+            checked_df = df_upp[['1', '2', '3', '4', '5']]
+            checked_df = checked_df.astype(str)  # делаем данные строковыми
+            # Создаем в каждом датафрейме колонку с айди путем склеивания всех нужных колонок в одну строку
+            checked_df['ID'] = checked_df.loc[:, ['1', '2', '3', '4', '5']].sum(axis=1)
+            # Удаляем пробелы
+            checked_df['ID'] = checked_df['ID'].apply(lambda x: x.replace(' ', ''))
+            checked_df['ID'] = checked_df['ID'].apply(lambda x: x.replace('nan', ''))
 
-        # Мержим по полю айди
-        merged_df = pd.merge(checked_df, transfer_df, how='outer', left_on='ID', right_on='ID', indicator=True)
+            # делаем строковыми первые 5 колонок
+            transfer_df[['1', '2', '3', '4', '5', ]] = transfer_df[['1', '2', '3', '4', '5', ]].astype(str)
+            transfer_df['ID'] = transfer_df.loc[:, ['1', '2', '3', '4', '5']].sum(axis=1)
+            transfer_df['ID'] = transfer_df['ID'].apply(lambda x: x.replace(' ', ''))
+            transfer_df['ID'] = transfer_df['ID'].apply(lambda x: x.replace('nan', ''))
 
-        # Отбираем только те значения которые есть в правом датафрейме
-        added_df = merged_df[merged_df['_merge'] == 'right_only']
+            # Мержим по полю айди
+            merged_df = pd.merge(checked_df, transfer_df, how='outer', left_on='ID', right_on='ID', indicator=True)
 
-        added_df.drop(columns=['1_x', '2_x', '3_x', '4_x', '5_x', 'ID', '_merge'],
-                      inplace=True)  # удаляем лишние колонки
+            # Отбираем только те значения которые есть в правом датафрейме
+            added_df = merged_df[merged_df['_merge'] == 'right_only']
 
-        added_df.rename(columns={'1_y': '1', '2_y': '2', '3_y': '3', '4_y': '4', '5_y': '5'},
-                        inplace=True)  # переименовываем колонки для корректного добавления
+            added_df.drop(columns=['1_x', '2_x', '3_x', '4_x', '5_x', 'ID', '_merge'],
+                          inplace=True)  # удаляем лишние колонки
 
-        itog_df = pd.concat([df_upp, added_df], ignore_index=True)
+            added_df.rename(columns={'1_y': '1', '2_y': '2', '3_y': '3', '4_y': '4', '5_y': '5'},
+                            inplace=True)  # переименовываем колонки для корректного добавления
 
-        itog_df.sort_values(['1', '2', '3', '4', '5',
-                             ], inplace=True)
+            itog_df = pd.concat([df_upp, added_df], ignore_index=True)
+
+            itog_df.sort_values(['1', '2', '3', '4', '5',
+                                 ], inplace=True)
+
+            # Приводим даты к нормальному виду ДД.ММ.ГГГГ
+            itog_df['17'] = pd.to_datetime(itog_df['17'], errors='coerce', dayfirst=True)
+            itog_df['22'] = pd.to_datetime(itog_df['22'], errors='coerce', dayfirst=True)
+            itog_df['17'] = itog_df['17'].apply(create_doc_convert_date)
+            itog_df['22'] = itog_df['22'].apply(create_doc_convert_date)
+
+            # Заменяем nan и пробелы в итоговом файле
+            # приводим к строковому виду
+            itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].astype(str)
+            # Заменяем
+            itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].apply(lambda x: x.replace(' ', ''))
+            itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].apply(lambda x: x.replace('nan', ''))
+
+            # конвертируем в инт номера квартала и выдела
+            itog_df['4'] = itog_df['4'].apply(convert_to_float)
+            itog_df['5'] = itog_df['5'].apply(convert_to_float)
+
+            itog_df['4'] = itog_df['4'].apply(convert_to_int_transfer)
+            itog_df['5'] = itog_df['5'].apply(convert_to_int_transfer)
+
+            # Получаем текущую дату
+            current_time = time.strftime('%H_%M_%S %d.%m.%Y')
+            # Сохраняем отчет
+            # Для того чтобы увеличить ширину колонок для удобства чтения используем openpyxl
+            wb = load_workbook(header_reestr)  # Создаем объект
+            # Записываем результаты
+            for row in dataframe_to_rows(itog_df, index=False, header=False):
+                wb['Реестр УПП'].append(row)
+
+            # Заменяем nan и пробелы в таблице с добавленными участками
+            # приводим к строковому виду
+            added_df[['1', '2', '3']] = added_df[['1', '2', '3']].astype(str)
+            added_df[['1', '2', '3']] = added_df[['1', '2', '3']].apply(lambda x: x.replace(' ', ''))
+            added_df[['1', '2', '3']] = added_df[['1', '2', '3']].apply(lambda x: x.replace('nan', ''))
+
+            added_df['4'] = added_df['4'].apply(convert_to_float)
+            added_df['5'] = added_df['5'].apply(convert_to_float)
+            added_df['4'] = added_df['4'].apply(convert_to_int_transfer)
+            added_df['5'] = added_df['5'].apply(convert_to_int_transfer)
+
+            # Переименовываем после соединения колонки в таблице с добавленными участками
+            added_df.rename(columns={'1': 'Лесничество', '2': 'Участковое лесничество', '3': 'Урочище',
+                                     '4': 'Номер лесного квартала', '5': 'Номер лесотаксационного выдела',
+                                     }, inplace=True)
+
+            # Сохраняем файл с добавляемыми данными, чтобы пользователи знали что именно добавилось
+            added_df.to_excel(
+                f'{path_to_end_folder}/Бурятия Участки из таблицы 3 добавленные в реестр УПП от {current_time}.xlsx',
+                index=False)
+
+            wb.save(f'{path_to_end_folder}/Бурятия Реестр УПП с добавлением данных из таблицы 3 {current_time}.xlsx')
+
+            # Якутия
+        elif region == 1:
+            # Создаем датафрейм для проверки наличия записи в реестре
+            checked_df = df_upp[['1', '2', '3', '4', '5', '11']]
+            checked_df = checked_df.astype(str)  # делаем данные строковыми
+            # Создаем в каждом датафрейме колонку с айди путем склеивания всех нужных колонок в одну строку
+            checked_df['ID'] = checked_df.loc[:, ['1', '2', '3', '4', '5', '11']].sum(axis=1)
+            # Удаляем пробелы
+            checked_df['ID'] = checked_df['ID'].apply(lambda x: x.replace(' ', ''))
+            checked_df['ID'] = checked_df['ID'].apply(lambda x: x.replace('nan', ''))
+
+            # делаем строковыми первые 6 колонок в таблице 3
+            transfer_df[['1', '2', '3', '4', '5', '11']] = transfer_df[['1', '2', '3', '4', '5', '11']].astype(str)
+            transfer_df['ID'] = transfer_df.loc[:, ['1', '2', '3', '4', '5', '11']].sum(axis=1)
+            transfer_df['ID'] = transfer_df['ID'].apply(lambda x: x.replace(' ', ''))
+            transfer_df['ID'] = transfer_df['ID'].apply(lambda x: x.replace('nan', ''))
+
+            # Мержим по полю айди
+            merged_df = pd.merge(checked_df, transfer_df, how='outer', left_on='ID', right_on='ID', indicator=True)
+
+            # Отбираем только те значения которые есть в правом датафрейме
+            added_df = merged_df[merged_df['_merge'] == 'right_only']
+
+            added_df.drop(columns=['1_x', '2_x', '3_x', '4_x', '5_x', '11_x', 'ID', '_merge'],
+                          inplace=True)  # удаляем лишние колонки
+
+            added_df.rename(columns={'1_y': '1', '2_y': '2', '3_y': '3', '4_y': '4', '5_y': '5', '11_y': '11'},
+                            inplace=True)  # переименовываем колонки для корректно
+
+            itog_df = pd.concat([df_upp, added_df], ignore_index=True)
+
+            itog_df.sort_values(['1', '2', '3', '4', '5', '11'
+                                 ], inplace=True)
+
+            # Приводим даты к нормальному виду ДД.ММ.ГГГГ
+            itog_df['17'] = pd.to_datetime(itog_df['17'], errors='coerce', dayfirst=True)
+            itog_df['22'] = pd.to_datetime(itog_df['22'], errors='coerce', dayfirst=True)
+            itog_df['17'] = itog_df['17'].apply(create_doc_convert_date)
+            itog_df['22'] = itog_df['22'].apply(create_doc_convert_date)
+
+            # Заменяем nan и пробелы в итоговом файле
+            # приводим к строковому виду
+            itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].astype(str)
+            # Заменяем
+            itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].apply(lambda x: x.replace(' ', ''))
+            itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].apply(lambda x: x.replace('nan', ''))
+
+            # конвертируем в инт номера квартала и выдела,дату
+            itog_df['4'] = itog_df['4'].apply(convert_to_float)
+            itog_df['5'] = itog_df['5'].apply(convert_to_float)
+            itog_df['11'] = itog_df['11'].apply(convert_to_float)
+
+            itog_df['4'] = itog_df['4'].apply(convert_to_int_transfer)
+            itog_df['5'] = itog_df['5'].apply(convert_to_int_transfer)
+            itog_df['11'] = itog_df['11'].apply(convert_to_int_transfer)
+
+            # Получаем текущую дату
+            current_time = time.strftime('%H_%M_%S %d.%m.%Y')
+            # Сохраняем отчет
+            # Для того чтобы увеличить ширину колонок для удобства чтения используем openpyxl
+            wb = load_workbook(header_reestr)  # Создаем объект
+            # Записываем результаты
+            for row in dataframe_to_rows(itog_df, index=False, header=False):
+                wb['Реестр УПП'].append(row)
+
+            # Заменяем nan и пробелы в таблице с добавленными участками
+            # приводим к строковому виду
+            added_df[['1', '2', '3', '11']] = added_df[['1', '2', '3', '11']].astype(str)
+            added_df[['1', '2', '3', '11']] = added_df[['1', '2', '3', '11']].apply(lambda x: x.replace(' ', ''))
+            added_df[['1', '2', '3', '11']] = added_df[['1', '2', '3', '11']].apply(lambda x: x.replace('nan', ''))
+
+            # конвертируем в инт номера квартала и выдела
+            added_df['4'] = added_df['4'].apply(convert_to_float)
+            added_df['5'] = added_df['5'].apply(convert_to_float)
+            added_df['11'] = added_df['11'].apply(convert_to_float)
+
+            added_df['4'] = added_df['4'].apply(convert_to_int_transfer)
+            added_df['5'] = added_df['5'].apply(convert_to_int_transfer)
+            added_df['11'] = added_df['11'].apply(convert_to_int_transfer)
+            # Переименовываем после соединения колонки в таблице с добавленными участками
+            added_df.rename(columns={'1': 'Лесничество', '2': 'Участковое лесничество', '3': 'Урочище',
+                                     '4': 'Номер лесного квартала', '5': 'Номер лесотаксационного выдела', },
+                            inplace=True)
+
+            # Сохраняем файл с добавляемыми данными, чтобы пользователи знали что именно добавилось
+            added_df.to_excel(
+                f'{path_to_end_folder}/Саха(Якутия) Участки из таблицы 3 добавленные в реестр УПП от {current_time}.xlsx',
+                index=False)
+
+            wb.save(
+                f'{path_to_end_folder}/Саха(Якутия) Реестр УПП с добавлением данных из таблицы 3 {current_time}.xlsx')
 
 
 
-        # Приводим даты к нормальному виду ДД.ММ.ГГГГ
-        itog_df['17'] = pd.to_datetime(itog_df['17'], errors='coerce', dayfirst=True)
-        itog_df['22'] = pd.to_datetime(itog_df['22'], errors='coerce', dayfirst=True)
-        itog_df['17'] = itog_df['17'].apply(create_doc_convert_date)
-        itog_df['22'] = itog_df['22'].apply(create_doc_convert_date)
 
-        # конвертируем в инт номера квартала и выдела
-        itog_df['4'] = itog_df['4'].apply(convert_to_int_transfer)
-        itog_df['5'] = itog_df['5'].apply(convert_to_int_transfer)
 
-        # Получаем текущую дату
-        current_time = time.strftime('%H_%M_%S %d.%m.%Y')
-        # Сохраняем отчет
-        # Для того чтобы увеличить ширину колонок для удобства чтения используем openpyxl
-        wb = load_workbook(header_reestr)  # Создаем объект
-        # Записываем результаты
-        for row in dataframe_to_rows(itog_df, index=False, header=False):
-            wb['Реестр УПП'].append(row)
 
-        # Переименовываем после соединения колонки в таблице с добавленными участками
-        added_df.rename(
-            columns={'1': 'Лесничество', '2': 'Участковое лесничество', '3': 'Урочище', '4': 'Номер лесного квартала',
-                     '5': 'Номер лесотаксационного выдела', }, inplace=True)
-
-        # Сохраняем файл с добавляемыми данными, чтобы пользователи знали что именно добавилось
-        added_df.to_excel(f'{path_to_end_folder}/Участки из таблицы 3 добавленные в реестр УПП от {current_time}.xlsx',
-                          index=False)
-
-        wb.save(f'{path_to_end_folder}/Реестр УПП с добавлением данных из таблицы 3 {current_time}.xlsx')
     except ValueError as e:
         messagebox.showerror('Артемида 1.4',
                              f'Не найдена колонка или лист {e.args}\nДанные в файле должны находиться на листе с названием Реестр УПП'
