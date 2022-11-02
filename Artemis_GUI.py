@@ -330,7 +330,12 @@ def processing_report_square_wood():
     :return:
     """
     try:
-        df = pd.read_excel(file_data_xlsx, skiprows=8)
+        # Получаем значение чекбокса региона
+        region = group_rb_region_report_square.get()
+        use_cols = list(range(25))
+
+        df = pd.read_excel(file_data_xlsx, skiprows=8, usecols=use_cols)
+
         # Приводим названия колонок к строковому виду, чтобы избежать возможных проблем с названиями колонок
         df.columns = list(map(str, list(df.columns)))
         # на всякий случай очищаем от пробельных символов
@@ -345,148 +350,299 @@ def processing_report_square_wood():
         Номер лесотаксационного выдела -5
         Площадь лесотаксационного выдела, га - 6
         Площадь лесотаксационного выдела или его части (лесопатологического выдела), га - 8
+        Год лесоустройства -11
         """
-
         df.rename(
             columns={'1': 'Лесничество', '2': 'Участковое лесничество', '3': 'Урочище', '4': 'Номер лесного квартала',
                      '5': 'Номер лесотаксационного выдела',
                      '6': 'Площадь лесотаксационного выдела, га',
-                     '8': 'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га', },
-            inplace=True)
+                     '8': 'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га',
+                     '11': 'Год лесоустройства'}, inplace=True)
 
         # заполняем пропущенные места
         df['Урочище'] = df['Урочище'].fillna('Название урочища не заполнено')
 
-        # СОздаем проверочный файл для проверки правильности ввода плошади выдела
-        check_df = df.copy(deep=True)
+        # Бурятия
+        if region == 0:
+            # СОздаем проверочный файл для проверки правильности ввода плошади выдела
+            check_df = df.copy(deep=True)
 
-        # Меняем тип столбца на строку чтобы создать строку включающую в себя все значения разделенные ;
-        check_df['Площадь лесотаксационного выдела, га'] = check_df['Площадь лесотаксационного выдела, га'].astype(str)
-        #
+            # Меняем тип столбца на строку чтобы создать строку включающую в себя все значения разделенные ;
+            check_df['Площадь лесотаксационного выдела, га'] = check_df['Площадь лесотаксационного выдела, га'].astype(
+                str)
+            #
 
-        checked_pl = check_df.groupby(['Лесничество', 'Участковое лесничество', 'Урочище', 'Номер лесного квартала',
-                                       'Номер лесотаксационного выдела']).agg(
-            {'Площадь лесотаксационного выдела, га': combine})
+            checked_pl = check_df.groupby(['Лесничество', 'Участковое лесничество', 'Урочище', 'Номер лесного квартала',
+                                           'Номер лесотаксационного выдела']).agg(
+                {'Площадь лесотаксационного выдела, га': combine})
 
-        # Применяем функцию првоеряющую количество уникальных значений в столбце, если больше одного то значит есть ошибка в данных
-        checked_pl['Контроль совпадения площади выдела'] = checked_pl['Площадь лесотаксационного выдела, га'].apply(
-            check_unique)
+            # Применяем функцию првоеряющую количество уникальных значений в столбце, если больше одного то значит есть ошибка в данных
+            checked_pl['Контроль совпадения площади выдела'] = checked_pl['Площадь лесотаксационного выдела, га'].apply(
+                check_unique)
 
-        # переименовывам колонку
-        checked_pl.rename(
-            columns={'Площадь лесотаксационного выдела, га': 'Все значения площади для указанного выдела'},
-            inplace=True)
-        # Извлекаем индексы в колонки
-        checked_pl = checked_pl.reset_index()
+            # переименовывам колонку
+            checked_pl.rename(
+                columns={'Площадь лесотаксационного выдела, га': 'Все значения площади для указанного выдела'},
+                inplace=True)
+            # Извлекаем индексы в колонки
+            checked_pl = checked_pl.reset_index()
 
-        # Получаем текущую дату
-        current_time = time.strftime('%H_%M_%S %d.%m.%Y')
-        # Сохраняем отчет
-        # Для того чтобы увеличить ширину колонок для удобства чтения используем openpyxl
-        wb = openpyxl.Workbook()  # Создаем объект
-        # Записываем результаты
-        for row in dataframe_to_rows(checked_pl, index=False, header=True):
-            wb['Sheet'].append(row)
+            # Получаем текущую дату
+            current_time = time.strftime('%H_%M_%S %d.%m.%Y')
+            # Сохраняем отчет
+            # Для того чтобы увеличить ширину колонок для удобства чтения используем openpyxl
+            wb = openpyxl.Workbook()  # Создаем объект
+            # Записываем результаты
+            for row in dataframe_to_rows(checked_pl, index=False, header=True):
+                wb['Sheet'].append(row)
 
-        # Форматирование итоговой таблицы
-        # Ширина колонок
-        wb['Sheet'].column_dimensions['A'].width = 15
-        wb['Sheet'].column_dimensions['B'].width = 20
-        wb['Sheet'].column_dimensions['C'].width = 36
-        wb['Sheet'].column_dimensions['F'].width = 15
-        wb['Sheet'].column_dimensions['G'].width = 15
-        # Перенос строк для заголовков
-        wb['Sheet']['D1'].alignment = Alignment(wrap_text=True)
-        wb['Sheet']['E1'].alignment = Alignment(wrap_text=True)
-        wb['Sheet']['F1'].alignment = Alignment(wrap_text=True)
-        wb['Sheet']['G1'].alignment = Alignment(wrap_text=True)
-        wb['Sheet']['H1'].alignment = Alignment(wrap_text=True)
+            # Форматирование итоговой таблицы
+            # Ширина колонок
+            wb['Sheet'].column_dimensions['A'].width = 15
+            wb['Sheet'].column_dimensions['B'].width = 20
+            wb['Sheet'].column_dimensions['C'].width = 36
+            wb['Sheet'].column_dimensions['F'].width = 15
+            wb['Sheet'].column_dimensions['G'].width = 15
+            # Перенос строк для заголовков
+            wb['Sheet']['D1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['E1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['F1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['G1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['H1'].alignment = Alignment(wrap_text=True)
 
-        wb.save(
-            f'{path_to_end_folder}/Проверка правильности ввода площадей лесотаксационного выдела {current_time}.xlsx')
+            wb.save(
+                f'{path_to_end_folder}/Бурятия Проверка правильности ввода площадей лесотаксационного выдела {current_time}.xlsx')
 
-        # Основной отчет
-        # Готовим колонки к группировке
-        df['Площадь лесотаксационного выдела, га'] = df['Площадь лесотаксационного выдела, га'].astype(str)
+            # Основной отчет
+            # Готовим колонки к группировке
+            df['Площадь лесотаксационного выдела, га'] = df['Площадь лесотаксационного выдела, га'].astype(str)
 
-        df['Площадь лесотаксационного выдела, га'] = df['Площадь лесотаксационного выдела, га'].apply(
-            lambda x: x.replace(',', '.'))
+            df['Площадь лесотаксационного выдела, га'] = df['Площадь лесотаксационного выдела, га'].apply(
+                lambda x: x.replace(',', '.'))
 
-        df['Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'] = df[
-            'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'].astype(str)
+            df['Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'] = df[
+                'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'].astype(str)
 
-        df['Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'] = df[
-            'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'].apply(
-            lambda x: x.replace(',', '.'))
+            df['Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'] = df[
+                'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'].apply(
+                lambda x: x.replace(',', '.'))
 
-        df['Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'] = df[
-            'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'].apply(convert_to_float)
+            df['Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'] = df[
+                'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'].apply(
+                convert_to_float)
 
-        df.head()
+            # Группируем
+            group_df = df.groupby(['Лесничество', 'Участковое лесничество', 'Урочище', 'Номер лесного квартала',
+                                   'Номер лесотаксационного выдела']).agg(
+                {'Площадь лесотаксационного выдела, га': main_check_unique,
+                 'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га': 'sum'})
 
-        # Группируем
-        group_df = df.groupby(['Лесничество', 'Участковое лесничество', 'Урочище', 'Номер лесного квартала',
-                               'Номер лесотаксационного выдела']).agg(
-            {'Площадь лесотаксационного выдела, га': main_check_unique,
-             'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га': 'sum'})
+            group_df = group_df.astype(str)
 
-        group_df = group_df.astype(str)
+            # переименовываем колонку
+            group_df.rename(columns={
+                'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га': 'Используемая площадь лесотаксационного выдела, га'},
+                inplace=True)
 
-        # переименовываем колонку
-        group_df.rename(columns={
-            'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га': 'Используемая площадь лесотаксационного выдела, га'},
-            inplace=True)
+            # Извлекаем индексы в колонки
+            group_df = group_df.reset_index()
 
-        # Извлекаем индексы в колонки
-        group_df = group_df.reset_index()
+            group_df['Площадь лесотаксационного выдела, га'] = group_df['Площадь лесотаксационного выдела, га'].apply(
+                convert_to_float)
+            group_df['Используемая площадь лесотаксационного выдела, га'] = group_df[
+                'Используемая площадь лесотаксационного выдела, га'].apply(convert_to_float)
 
-        group_df['Площадь лесотаксационного выдела, га'] = group_df['Площадь лесотаксационного выдела, га'].apply(
-            convert_to_float)
-        group_df['Используемая площадь лесотаксационного выдела, га'] = group_df[
-            'Используемая площадь лесотаксационного выдела, га'].apply(convert_to_float)
+            # Округляем до 3 знаков для корректного сравнения
+            group_df['Площадь лесотаксационного выдела, га'] = np.round(
+                group_df['Площадь лесотаксационного выдела, га'], decimals=3)
+            group_df['Используемая площадь лесотаксационного выдела, га'] = np.round(
+                group_df['Используемая площадь лесотаксационного выдела, га'], decimals=3)
 
-        # Округляем до 3 знаков для корректного сравнения
-        group_df['Площадь лесотаксационного выдела, га'] = np.round(group_df['Площадь лесотаксационного выдела, га'],
-                                                                    decimals=3)
-        group_df['Используемая площадь лесотаксационного выдела, га'] = np.round(
-            group_df['Используемая площадь лесотаксационного выдела, га'], decimals=3)
+            # Создаем колонку для контроля
+            group_df['Контроль площади используемого надела'] = group_df['Площадь лесотаксационного выдела, га'] < \
+                                                                group_df[
+                                                                    'Используемая площадь лесотаксационного выдела, га']
 
-        # Создаем колонку для контроля
-        group_df['Контроль площади используемого надела'] = group_df['Площадь лесотаксационного выдела, га'] < group_df[
-            'Используемая площадь лесотаксационного выдела, га']
+            group_df['Контроль площади используемого надела'] = group_df['Контроль площади используемого надела'].apply(
+                lambda x: 'Превышение используемой площади выдела!!!' if x is True else 'Все в порядке')
 
-        group_df['Контроль площади используемого надела'] = group_df['Контроль площади используемого надела'].apply(
-            lambda x: 'Превышение используемой площади выдела!!!' if x is True else 'Все в порядке')
+            # Изменяем состояние колонки если площадь всего выдела равна 0
+            group_df['Контроль правильности ввода площади лесотаксационного выдела'] = group_df[
+                'Площадь лесотаксационного выдела, га'].apply(
+                lambda
+                    x: 'Площадь лесотаксационного выдела равна нулю или  обнаружены разные значения площади выдела !!!' if x == 0 else 'Площади лесотаксационного выдела не отличаются друг от друга')
 
-        # Изменяем состояние колонки если площадь всего выдела равна 0
-        group_df['Контроль правильности ввода площади лесотаксационного выдела'] = group_df[
-            'Площадь лесотаксационного выдела, га'].apply(
-            lambda
-                x: 'Площадь лесотаксационного выдела равна нулю или  обнаружены разные значения площади выдела !!!' if x == 0 else 'Площади лесотаксационного выдела не отличаются друг от друга')
+            # Сохраняем отчет
+            # Для того чтобы увеличить ширину колонок для удобства чтения используем openpyxl
+            wb = openpyxl.Workbook()  # Создаем объект
+            # Записываем результаты
+            for row in dataframe_to_rows(group_df, index=False, header=True):
+                wb['Sheet'].append(row)
 
-        # Сохраняем отчет
-        # Для того чтобы увеличить ширину колонок для удобства чтения используем openpyxl
-        wb = openpyxl.Workbook()  # Создаем объект
-        # Записываем результаты
-        for row in dataframe_to_rows(group_df, index=False, header=True):
-            wb['Sheet'].append(row)
+            # Форматирование итоговой таблицы
+            # Ширина колонок
+            wb['Sheet'].column_dimensions['A'].width = 15
+            wb['Sheet'].column_dimensions['B'].width = 20
+            wb['Sheet'].column_dimensions['C'].width = 36
+            wb['Sheet'].column_dimensions['F'].width = 15
+            wb['Sheet'].column_dimensions['G'].width = 15
+            wb['Sheet'].column_dimensions['H'].width = 20
+            # Перенос строк для заголовков
+            wb['Sheet']['D1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['E1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['F1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['G1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['H1'].alignment = Alignment(wrap_text=True)
 
-        # Форматирование итоговой таблицы
-        # Ширина колонок
-        wb['Sheet'].column_dimensions['A'].width = 15
-        wb['Sheet'].column_dimensions['B'].width = 20
-        wb['Sheet'].column_dimensions['C'].width = 36
-        wb['Sheet'].column_dimensions['F'].width = 15
-        wb['Sheet'].column_dimensions['G'].width = 15
-        wb['Sheet'].column_dimensions['H'].width = 20
-        # Перенос строк для заголовков
-        wb['Sheet']['D1'].alignment = Alignment(wrap_text=True)
-        wb['Sheet']['E1'].alignment = Alignment(wrap_text=True)
-        wb['Sheet']['F1'].alignment = Alignment(wrap_text=True)
-        wb['Sheet']['G1'].alignment = Alignment(wrap_text=True)
-        wb['Sheet']['H1'].alignment = Alignment(wrap_text=True)
+            wb.save(
+                f'{path_to_end_folder}/Бурятия Контроль используемых площадей лесотаксационных выделов от {current_time}.xlsx')
 
-        wb.save(f'{path_to_end_folder}/Контроль используемых площадей лесотаксационных выделов от {current_time}.xlsx')
+
+        # Якутия
+        elif region == 1:
+            # СОздаем проверочный файл для проверки правильности ввода плошади выдела
+            check_df = df.copy(deep=True)
+
+            # Меняем тип столбца на строку чтобы создать строку включающую в себя все значения разделенные ;
+            check_df['Площадь лесотаксационного выдела, га'] = check_df['Площадь лесотаксационного выдела, га'].astype(
+                str)
+
+            # Заполняем год лесоустройства на случай если он не заполнен или заполнен пробелами
+            df['Год лесоустройства'] = df['Год лесоустройства'].astype(str)
+            df['Год лесоустройства'] = df['Год лесоустройства'].apply(lambda x: x.replace(' ', 'Отсутствует'))
+            df['Год лесоустройства'] = df['Год лесоустройства'].apply(lambda x: x.replace('nan', 'Отсутствует'))
+
+            checked_pl = check_df.groupby(['Лесничество', 'Участковое лесничество', 'Урочище', 'Номер лесного квартала',
+                                           'Номер лесотаксационного выдела', 'Год лесоустройства']).agg(
+                {'Площадь лесотаксационного выдела, га': combine})
+
+            # Применяем функцию првоеряющую количество уникальных значений в столбце, если больше одного то значит есть ошибка в данных
+            checked_pl['Контроль совпадения площади выдела'] = checked_pl['Площадь лесотаксационного выдела, га'].apply(
+                check_unique)
+
+            # переименовывам колонку
+            checked_pl.rename(
+                columns={'Площадь лесотаксационного выдела, га': 'Все значения площади для указанного выдела'},
+                inplace=True)
+            # Извлекаем индексы в колонки
+            checked_pl = checked_pl.reset_index()
+
+            # Получаем текущую дату
+            current_time = time.strftime('%H_%M_%S %d.%m.%Y')
+            # Сохраняем отчет
+            # Для того чтобы увеличить ширину колонок для удобства чтения используем openpyxl
+            wb = openpyxl.Workbook()  # Создаем объект
+            # Записываем результаты
+            for row in dataframe_to_rows(checked_pl, index=False, header=True):
+                wb['Sheet'].append(row)
+
+            # Форматирование итоговой таблицы
+            # Ширина колонок
+            wb['Sheet'].column_dimensions['A'].width = 15
+            wb['Sheet'].column_dimensions['B'].width = 20
+            wb['Sheet'].column_dimensions['C'].width = 36
+            wb['Sheet'].column_dimensions['F'].width = 15
+            wb['Sheet'].column_dimensions['G'].width = 15
+            # Перенос строк для заголовков
+            wb['Sheet']['D1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['E1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['F1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['G1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['H1'].alignment = Alignment(wrap_text=True)
+
+            wb.save(
+                f'{path_to_end_folder}/Саха(Якутия) Проверка правильности ввода площадей лесотаксационного выдела {current_time}.xlsx')
+
+            # Основной отчет
+            # Готовим колонки к группировке
+            df['Площадь лесотаксационного выдела, га'] = df['Площадь лесотаксационного выдела, га'].astype(str)
+
+            df['Площадь лесотаксационного выдела, га'] = df['Площадь лесотаксационного выдела, га'].apply(
+                lambda x: x.replace(',', '.'))
+
+            df['Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'] = df[
+                'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'].astype(str)
+
+            df['Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'] = df[
+                'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'].apply(
+                lambda x: x.replace(',', '.'))
+
+            df['Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'] = df[
+                'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га'].apply(
+                convert_to_float)
+
+            # Группируем
+            group_df = df.groupby(['Лесничество', 'Участковое лесничество', 'Урочище', 'Номер лесного квартала',
+                                   'Номер лесотаксационного выдела', 'Год лесоустройства']).agg(
+                {'Площадь лесотаксационного выдела, га': main_check_unique,
+                 'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га': 'sum'})
+
+            group_df = group_df.astype(str)
+
+            # переименовываем колонку
+            group_df.rename(columns={
+                'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га': 'Используемая площадь лесотаксационного выдела, га'},
+                inplace=True)
+
+            # Извлекаем индексы в колонки
+            group_df = group_df.reset_index()
+
+            group_df['Площадь лесотаксационного выдела, га'] = group_df['Площадь лесотаксационного выдела, га'].apply(
+                convert_to_float)
+            group_df['Используемая площадь лесотаксационного выдела, га'] = group_df[
+                'Используемая площадь лесотаксационного выдела, га'].apply(convert_to_float)
+
+            group_df['Площадь лесотаксационного выдела, га'] = group_df['Площадь лесотаксационного выдела, га'].apply(
+                convert_to_float)
+            group_df['Используемая площадь лесотаксационного выдела, га'] = group_df[
+                'Используемая площадь лесотаксационного выдела, га'].apply(convert_to_float)
+
+            # Округляем до 3 знаков для корректного сравнения
+            group_df['Площадь лесотаксационного выдела, га'] = np.round(
+                group_df['Площадь лесотаксационного выдела, га'], decimals=3)
+            group_df['Используемая площадь лесотаксационного выдела, га'] = np.round(
+                group_df['Используемая площадь лесотаксационного выдела, га'], decimals=3)
+
+            # Создаем колонку для контроля
+            group_df['Контроль площади используемого надела'] = group_df['Площадь лесотаксационного выдела, га'] < \
+                                                                group_df[
+                                                                    'Используемая площадь лесотаксационного выдела, га']
+
+            group_df['Контроль площади используемого надела'] = group_df['Контроль площади используемого надела'].apply(
+                lambda x: 'Превышение используемой площади выдела!!!' if x is True else 'Все в порядке')
+
+            # Изменяем состояние колонки если площадь всего выдела равна 0
+            group_df['Контроль правильности ввода площади лесотаксационного выдела'] = group_df[
+                'Площадь лесотаксационного выдела, га'].apply(
+                lambda
+                    x: 'Площадь лесотаксационного выдела равна нулю или  обнаружены разные значения площади выдела !!!' if x == 0 else 'Площади лесотаксационного выдела не отличаются друг от друга')
+
+            # Сохраняем отчет
+            # Для того чтобы увеличить ширину колонок для удобства чтения используем openpyxl
+            wb = openpyxl.Workbook()  # Создаем объект
+            # Записываем результаты
+            for row in dataframe_to_rows(group_df, index=False, header=True):
+                wb['Sheet'].append(row)
+
+            # Форматирование итоговой таблицы
+            # Ширина колонок
+            wb['Sheet'].column_dimensions['A'].width = 15
+            wb['Sheet'].column_dimensions['B'].width = 20
+            wb['Sheet'].column_dimensions['C'].width = 36
+            wb['Sheet'].column_dimensions['F'].width = 15
+            wb['Sheet'].column_dimensions['G'].width = 15
+            wb['Sheet'].column_dimensions['H'].width = 20
+            # Перенос строк для заголовков
+            wb['Sheet']['D1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['E1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['F1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['G1'].alignment = Alignment(wrap_text=True)
+            wb['Sheet']['H1'].alignment = Alignment(wrap_text=True)
+
+            wb.save(
+                f'{path_to_end_folder}/Саха(Якутия) Контроль используемых площадей лесотаксационных выделов от {current_time}.xlsx')
+
+
 
 
 
@@ -1109,24 +1265,14 @@ if __name__ == '__main__':
           image=img_presense
           ).grid(column=1, row=0, padx=10, pady=25)
 
-    # Переключатель:Бурятия или Якутия
-    # Создаем переменную хранящую регион, в зависимости от значения будет происходить обработка
-    group_rb_region_presense_reestr = IntVar()
-    group_rb_region_presense_reestr.set(0)  # Устанавливаем значение по умолчанию
-    # Создаем фрейм для размещения переключателей(pack и грид не используются в одном контейнере)
-    frame_rb_region_presense_reestr = LabelFrame(tab_presense_reestr, text='1) Выберите регион')
-    frame_rb_region_presense_reestr.grid(column=0, row=1, padx=10)
-    Radiobutton(frame_rb_region_presense_reestr, text='Бурятия', variable=group_rb_region_presense_reestr, value=0).pack()
-    Radiobutton(frame_rb_region_presense_reestr, text='Саха(Якутия)', variable=group_rb_region_presense_reestr, value=1).pack()
-
-    # Создаем кнопку Выбрать файл с реестром
-    btn_choose_reestr_presense = Button(tab_presense_reestr, text='2) Выберите файл\n реестра УПП', font=('Arial Bold', 20),
+     # Создаем кнопку Выбрать файл с реестром
+    btn_choose_reestr_presense = Button(tab_presense_reestr, text='1) Выберите файл\n реестра УПП', font=('Arial Bold', 20),
                              command=select_file_reestr_presense
                              )
     btn_choose_reestr_presense.grid(column=0, row=2, padx=10, pady=10)
 
     # Создаем кнопку Выбрать файл с ведомостью
-    btn_choose_statement_presense = Button(tab_presense_reestr, text='3) Выберите файл ведомости', font=('Arial Bold', 20),
+    btn_choose_statement_presense = Button(tab_presense_reestr, text='2) Выберите файл ведомости', font=('Arial Bold', 20),
                              command=select_file_statement_presense
                              )
     btn_choose_statement_presense.grid(column=0, row=3, padx=10, pady=10)
@@ -1134,14 +1280,14 @@ if __name__ == '__main__':
 
     # Создаем кнопку для выбора папки куда будут генерироваться файлы
 
-    btn_choose_end_folder_presense = Button(tab_presense_reestr, text='4) Выберите конечную папку', font=('Arial Bold', 20),
+    btn_choose_end_folder_presense = Button(tab_presense_reestr, text='3) Выберите конечную папку', font=('Arial Bold', 20),
                                    command=select_end_folder
                                    )
     btn_choose_end_folder_presense.grid(column=0, row=4, padx=10, pady=10)
 
     # Создаем кнопку обработки данных
 
-    btn_proccessing_data_presense = Button(tab_presense_reestr, text='5) Обработать данные', font=('Arial Bold', 20),
+    btn_proccessing_data_presense = Button(tab_presense_reestr, text='4) Обработать данные', font=('Arial Bold', 20),
                                   command=processing_presense_reestr
                                   )
     btn_proccessing_data_presense.grid(column=0, row=5, padx=10, pady=10)
