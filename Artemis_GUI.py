@@ -116,7 +116,15 @@ def processing_presense_reestr():
         # Считываем из файлов только те колонки по которым будет вестись сравнение
         first_df = pd.read_excel(file_reestr_presense,
                                  skiprows=8, usecols=[0, 1, 2, 3, 4], keep_default_na=False)
-        second_df = pd.read_excel(file_statement_presense, keep_default_na=False)
+        second_df = pd.read_excel(file_statement_presense, usecols=[0, 1, 2, 3, 4], keep_default_na=False)
+
+        # Приводим к строковому формату названия колонок первого датафрейма
+        first_df.columns = list(map(str, list(first_df.columns)))
+        # на всякий случай очищаем от пробельных символов
+        first_df.columns = list(map(lambda x: x.replace(" ", ""), list(first_df.columns)))
+
+        # заменяем на цифры названия колонок во втором датафрейме
+        second_df.columns = ['1', '2', '3', '4', '5']
 
         # Приводим датафреймы к строковому виду
         first_df = first_df.astype(str)
@@ -131,6 +139,24 @@ def processing_presense_reestr():
         # Конвертируем нужные нам колонки в str
         convert_columns_to_str(first_df, params_columns)
         convert_columns_to_str(second_df, params_columns)
+
+        """
+        Соответствие названий колонок используемым в программе номерам колонок
+        Лесничество -1
+        Участковое лесничество- 2
+        Урочище - 3
+        Номер лесного квартала -4
+        Номер лесотаксационного выдела -5
+
+        """
+
+        # Готовим 4 и 5 колонки чтобы они были разделеныпри склеивании
+        first_df['4'] = first_df['4'].apply(lambda x: 'кв.' + x)  # Добавляем разделитель квартал
+        first_df['5'] = first_df['5'].apply(lambda x: 'в.' + x)  # Добавляем разделитель выдел
+
+        # То же самое для второго датафрейма
+        second_df['4'] = second_df['4'].apply(lambda x: 'кв.' + x)  # Добавляем разделитель квартал
+        second_df['5'] = second_df['5'].apply(lambda x: 'в.' + x)  # Добавляем разделитель выдел
 
         # Создаем в каждом датафрейме колонку с айди путем склеивания всех нужных колонок в одну строку
         first_df['ID'] = first_df.iloc[:, params_columns].sum(axis=1)
@@ -155,7 +181,12 @@ def processing_presense_reestr():
         # Отфильтровываем значения both,right
         out_df = itog_df[(itog_df['_merge'] == 'both') | (itog_df['_merge'] == 'right_only')]
 
-        out_df.rename(columns={'_merge': 'Присутствие в реестре УПП'}, inplace=True)
+        out_df.rename(
+            columns={'_merge': 'Присутствие в реестре УПП', '1_x': 'Реестр Лесничество', '2_x': 'Реестр Уч.лесничество',
+                     '3_x': 'Реестр Урочище',
+                     '4_x': 'Реестр Квартал', '5_x': 'Реестр Выдел', '1_y': 'Ведомость Лесничество',
+                     '2_y': 'Ведомость Уч.Лесничество',
+                     '3_y': 'Ведомость Урочище', '4_y': 'Ведомость Квартал', '5_y': 'Ведомость Выдел'}, inplace=True)
 
         out_df['Присутствие в реестре УПП'] = out_df['Присутствие в реестре УПП'].apply(
             lambda x: 'Имеется в реестре' if x == 'both' else 'Отсутствует в реестре')
@@ -174,34 +205,41 @@ def processing_presense_reestr():
         wb['Sheet'].column_dimensions['A'].width = 15
         wb['Sheet'].column_dimensions['B'].width = 20
         wb['Sheet'].column_dimensions['C'].width = 10
-        wb['Sheet'].column_dimensions['F'].width = 36
-        wb['Sheet'].column_dimensions['L'].width = 20
+        wb['Sheet'].column_dimensions['G'].width = 20
+        wb['Sheet'].column_dimensions['H'].width = 20
+        wb['Sheet'].column_dimensions['F'].width = 50
+        wb['Sheet'].column_dimensions['L'].width = 30
         # Перенос строк для заголовков
         wb['Sheet']['D1'].alignment = Alignment(wrap_text=True)
         wb['Sheet']['E1'].alignment = Alignment(wrap_text=True)
         wb['Sheet']['F1'].alignment = Alignment(wrap_text=True)
         wb['Sheet']['G1'].alignment = Alignment(wrap_text=True)
         wb['Sheet']['H1'].alignment = Alignment(wrap_text=True)
-        # Сохраняем
+        wb['Sheet']['I1'].alignment = Alignment(wrap_text=True)
+        wb['Sheet']['J1'].alignment = Alignment(wrap_text=True)
+        wb['Sheet']['K1'].alignment = Alignment(wrap_text=True)
+        wb['Sheet']['H1'].alignment = Alignment(wrap_text=True)
+
         wb.save(
             f'{path_to_end_folder}/Сравнение УПП с другими ведомостями на наличие участков или их отсутствие от  {current_time}.xlsx')
+
     except ValueError as e:
-        messagebox.showerror('Артемида 1.5',
+        messagebox.showerror('Артемида 1.6',
                              f'Не найдена колонка или лист {e.args}\nДанные в файле должны находиться на листе с названием Реестр УПП'
                              f'\nКолонки 1-8 должны иметь названия: Лесничество,Участковое лесничество,Урочище ,Номер лесного квартала,\n'
                              f'Номер лесотаксационного выдела,Площадь лесотаксационного выдела, га,Обозначение части лесотаксационного выдела (лесопатологического выдела), га ,'
                              f'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га')
     except NameError:
-        messagebox.showerror('Артемида 1.5', f'Выберите файл с данными и конечную папку')
+        messagebox.showerror('Артемида 1.6', f'Выберите файл с данными и конечную папку')
     except PermissionError:
-        messagebox.showerror('Артемида 1.5', f'Закройте файлы с созданными раньше отчетами!!!')
+        messagebox.showerror('Артемида 1.6', f'Закройте файлы с созданными раньше отчетами!!!')
     except FileNotFoundError:
-        messagebox.showerror('Артемида 1.5', f'Проверьте наличие указанных файлов')
+        messagebox.showerror('Артемида 1.6', f'Проверьте наличие указанных файлов')
     except MemoryError:
-        messagebox.showerror('Артемида 1.5', f'Слишком большая таблица!!!\nПроверьте размер таблицы!!!\nНажмите CTRL+END для проверки'
+        messagebox.showerror('Артемида 1.6', f'Слишком большая таблица!!!\nПроверьте размер таблицы!!!\nНажмите CTRL+END для проверки'
                                              f'Пересоздайте файл без пустых строк и столбцов')
     else:
-        messagebox.showinfo('Артемида 1.5', 'Работа программы успешно завершена!!!')
+        messagebox.showinfo('Артемида 1.6', 'Работа программы успешно завершена!!!')
 
 def convert_to_int_transfer(cell):
     """
@@ -289,9 +327,9 @@ def prepare_column_purpose_category(df,name_columns):
         df[name_columns] = df[name_columns].astype(int)
         df[name_columns] = df[name_columns].astype(str)
     except KeyError as e:
-            messagebox.showerror('Артемида 1.5',f'Не найдена колонка {e.args} Проверьте файл на наличие этой колонки')
+            messagebox.showerror('Артемида 1.6',f'Не найдена колонка {e.args} Проверьте файл на наличие этой колонки')
     except ValueError as e:
-        messagebox.showerror('Артемида 1.5', f'Возникла ошибка при обработке значения {e.args}\n'
+        messagebox.showerror('Артемида 1.6', f'Возникла ошибка при обработке значения {e.args}\n'
                                              f'в колонках целевого назначения и категории должны быть только цифры!')
 
 def convert_columns_to_str(df, number_columns):
@@ -647,22 +685,22 @@ def processing_report_square_wood():
 
 
     except ValueError as e:
-        messagebox.showerror('Артемида 1.5',
+        messagebox.showerror('Артемида 1.6',
                              f'Не найдена колонка или лист {e.args}\nДанные в файле должны находиться на листе с названием Реестр УПП'
                              f'\nКолонки 1-8 должны иметь названия: Лесничество,Участковое лесничество,Урочище ,Номер лесного квартала,\n'
                              f'Номер лесотаксационного выдела,Площадь лесотаксационного выдела, га,Обозначение части лесотаксационного выдела (лесопатологического выдела), га ,'
                              f'Площадь лесотаксационного выдела или его части (лесопатологического выдела), га')
     except NameError:
-        messagebox.showerror('Артемида 1.5', f'Выберите файл с данными и конечную папку')
+        messagebox.showerror('Артемида 1.6', f'Выберите файл с данными и конечную папку')
     except FileNotFoundError:
-        messagebox.showerror('Артемида 1.5', f'Проверьте наличие указанных файлов')
+        messagebox.showerror('Артемида 1.6', f'Проверьте наличие указанных файлов')
     except PermissionError:
-        messagebox.showerror('Артемида 1.5', f'Закройте файлы с созданными раньше отчетами!!!')
+        messagebox.showerror('Артемида 1.6', f'Закройте файлы с созданными раньше отчетами!!!')
     except MemoryError:
-        messagebox.showerror('Артемида 1.5', f'Слишком большая таблица!!!\nПроверьте размер таблицы!!!\nНажмите CTRL+END для проверки'
+        messagebox.showerror('Артемида 1.6', f'Слишком большая таблица!!!\nПроверьте размер таблицы!!!\nНажмите CTRL+END для проверки'
                                              f'Пересоздайте файл без пустых строк и столбцов')
     else:
-        messagebox.showinfo('Артемида 1.5', 'Работа программы успешно завершена!!!')
+        messagebox.showinfo('Артемида 1.6', 'Работа программы успешно завершена!!!')
 
 def proccessing_report_purpose_category():
     """
@@ -850,21 +888,21 @@ def proccessing_report_purpose_category():
                 f'{path_to_end_folder}/Саха(Якутия)Проверка правильности ввода целевого назначения лесов и категории защитных лесов {current_time}.xlsx')
 
     except ValueError as e:
-        messagebox.showerror('Артемида 1.5',
+        messagebox.showerror('Артемида 1.6',
                              f'Не найдена колонка или лист {e.args}\nДанные в файле должны находиться на листе с названием Реестр УПП'
                              f'\nВ файле должны быть колонки: Лесничество,Участковое лесничество,Урочище ,Номер лесного квартала,\n'
                              f'Номер лесотаксационного выдела,Целевое назначение лесов ,Категория защитных лесов (код) ')
     except NameError:
-        messagebox.showerror('Артемида 1.5', f'Выберите файл с данными и конечную папку')
+        messagebox.showerror('Артемида 1.6', f'Выберите файл с данными и конечную папку')
     except FileNotFoundError:
-        messagebox.showerror('Артемида 1.5', f'Проверьте наличие указанных файлов')
+        messagebox.showerror('Артемида 1.6', f'Проверьте наличие указанных файлов')
     except PermissionError:
-        messagebox.showerror('Артемида 1.5', f'Закройте файлы с созданными раньше отчетами!!!')
+        messagebox.showerror('Артемида 1.6', f'Закройте файлы с созданными раньше отчетами!!!')
     except MemoryError:
-        messagebox.showerror('Артемида 1.5', f'Слишком большая таблица!!!\nПроверьте размер таблицы!!!\nНажмите CTRL+END для проверки'
+        messagebox.showerror('Артемида 1.6', f'Слишком большая таблица!!!\nПроверьте размер таблицы!!!\nНажмите CTRL+END для проверки'
                                              f'Пересоздайте файл без пустых строк и столбцов')
     else:
-        messagebox.showinfo('Артемида 1.5', 'Работа программы успешно завершена!!!')
+        messagebox.showinfo('Артемида 1.6', 'Работа программы успешно завершена!!!')
 
 
 def create_doc_convert_date(cell):
@@ -887,13 +925,14 @@ def proccessing_transfer_table3_to_reestr():
     try:
         # Создаем список колонок которые нужно загрузить
         use_cols = list(range(25))
-
+        # Получаем значение кнопки
+        region = group_rb_region_transfer_3_to_reestr.get()
         # Загружаем датафреймы
-        df_upp = pd.read_excel(file_transfer_reestr, skiprows=8, usecols=use_cols)
+        df_upp = pd.read_excel(file_transfer_reestr, skiprows=8, usecols=use_cols, dtype={4: str, 5: str})
         df_table_3 = pd.read_excel(file_transfer_to_upp, skiprows=6,
                                    usecols=[4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25,
                                             26, 27, 28,
-                                            29, 32])
+                                            29, 32], dtype={7: str, 8: str, 9: str})
 
         # Приводим названия колонок к строковому виду, чтобы избежать возможных проблем с названиями колонок
         df_upp.columns = list(map(str, list(df_upp.columns)))
@@ -923,16 +962,17 @@ def proccessing_transfer_table3_to_reestr():
         transfer_df.columns = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16',
                                '17', '18', '19', '20', '21', '22', '23', '24']
 
-
-        # Получаем значение кнопки
-        region = group_rb_region_transfer_3_to_reestr.get()
-
         # Бурятия
         if region == 0:
 
             # Создаем датафрейм для проверки наличия записи в реестре
             checked_df = df_upp[['1', '2', '3', '4', '5']]
             checked_df = checked_df.astype(str)  # делаем данные строковыми
+
+            # Готовим 4 и 5 колонки чтобы они были разделеныпри склеивании
+            checked_df['4'] = checked_df['4'].apply(lambda x: 'кв.' + x)  # Добавляем разделитель квартал
+            checked_df['5'] = checked_df['5'].apply(lambda x: 'в.' + x)  # Добавляем разделитель выдел
+
             # Создаем в каждом датафрейме колонку с айди путем склеивания всех нужных колонок в одну строку
             checked_df['ID'] = checked_df.loc[:, ['1', '2', '3', '4', '5']].sum(axis=1)
             # Удаляем пробелы
@@ -941,6 +981,11 @@ def proccessing_transfer_table3_to_reestr():
 
             # делаем строковыми первые 5 колонок
             transfer_df[['1', '2', '3', '4', '5', ]] = transfer_df[['1', '2', '3', '4', '5', ]].astype(str)
+
+            # Готовим 4 и 5 колонки чтобы они были разделеныпри склеивании
+            transfer_df['4'] = transfer_df['4'].apply(lambda x: 'кв.' + x)  # Добавляем разделитель квартал
+            transfer_df['5'] = transfer_df['5'].apply(lambda x: 'в.' + x)  # Добавляем разделитель выдел
+
             transfer_df['ID'] = transfer_df.loc[:, ['1', '2', '3', '4', '5']].sum(axis=1)
             transfer_df['ID'] = transfer_df['ID'].apply(lambda x: x.replace(' ', ''))
             transfer_df['ID'] = transfer_df['ID'].apply(lambda x: x.replace('nan', ''))
@@ -975,12 +1020,13 @@ def proccessing_transfer_table3_to_reestr():
             itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].apply(lambda x: x.replace(' ', ''))
             itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].apply(lambda x: x.replace('nan', ''))
 
-            # конвертируем в инт номера квартала и выдела
-            itog_df['4'] = itog_df['4'].apply(convert_to_float)
-            itog_df['5'] = itog_df['5'].apply(convert_to_float)
+            # Приводим к строковому виду чтобы очистить от разделителей кв. и в.
+            itog_df['4'] = itog_df['4'].astype(str)
+            itog_df['5'] = itog_df['5'].astype(str)
 
-            itog_df['4'] = itog_df['4'].apply(convert_to_int_transfer)
-            itog_df['5'] = itog_df['5'].apply(convert_to_int_transfer)
+            # Очищаем от разделителей
+            itog_df['4'] = itog_df['4'].apply(lambda x: x.replace('кв.', ''))
+            itog_df['5'] = itog_df['5'].apply(lambda x: x.replace('в.', ''))
 
             # Получаем текущую дату
             current_time = time.strftime('%H_%M_%S %d.%m.%Y')
@@ -997,10 +1043,13 @@ def proccessing_transfer_table3_to_reestr():
             added_df[['1', '2', '3']] = added_df[['1', '2', '3']].apply(lambda x: x.replace(' ', ''))
             added_df[['1', '2', '3']] = added_df[['1', '2', '3']].apply(lambda x: x.replace('nan', ''))
 
-            added_df['4'] = added_df['4'].apply(convert_to_float)
-            added_df['5'] = added_df['5'].apply(convert_to_float)
-            added_df['4'] = added_df['4'].apply(convert_to_int_transfer)
-            added_df['5'] = added_df['5'].apply(convert_to_int_transfer)
+            # Приводим к строковому виду чтобы очистить от разделителей кв. и в.
+            added_df['4'] = added_df['4'].astype(str)
+            added_df['5'] = added_df['5'].astype(str)
+
+            # Очищаем от разделителей
+            added_df['4'] = added_df['4'].apply(lambda x: x.replace('кв.', ''))
+            added_df['5'] = added_df['5'].apply(lambda x: x.replace('в.', ''))
 
             # Переименовываем после соединения колонки в таблице с добавленными участками
             added_df.rename(columns={'1': 'Лесничество', '2': 'Участковое лесничество', '3': 'Урочище',
@@ -1019,14 +1068,26 @@ def proccessing_transfer_table3_to_reestr():
             # Создаем датафрейм для проверки наличия записи в реестре
             checked_df = df_upp[['1', '2', '3', '4', '5', '11']]
             checked_df = checked_df.astype(str)  # делаем данные строковыми
+
+            checked_df['4'] = checked_df['4'].apply(lambda x: 'кв.' + x)  # Добавляем разделитель квартал
+            checked_df['5'] = checked_df['5'].apply(lambda x: 'в.' + x)  # Добавляем разделитель выдел
+            checked_df['11'] = checked_df['11'].apply(lambda x: 'г.' + x)  # Добавляем разделитель год
+
             # Создаем в каждом датафрейме колонку с айди путем склеивания всех нужных колонок в одну строку
             checked_df['ID'] = checked_df.loc[:, ['1', '2', '3', '4', '5', '11']].sum(axis=1)
+
             # Удаляем пробелы
             checked_df['ID'] = checked_df['ID'].apply(lambda x: x.replace(' ', ''))
             checked_df['ID'] = checked_df['ID'].apply(lambda x: x.replace('nan', ''))
 
             # делаем строковыми первые 6 колонок в таблице 3
             transfer_df[['1', '2', '3', '4', '5', '11']] = transfer_df[['1', '2', '3', '4', '5', '11']].astype(str)
+
+            # Готовим 4 и 5 11 колонки чтобы они были разделеныпри склеивании
+            transfer_df['4'] = transfer_df['4'].apply(lambda x: 'кв.' + x)  # Добавляем разделитель квартал
+            transfer_df['5'] = transfer_df['5'].apply(lambda x: 'в.' + x)  # Добавляем разделитель выдел
+            transfer_df['11'] = transfer_df['11'].apply(lambda x: 'г.' + x)  # Добавляем разделитель год
+
             transfer_df['ID'] = transfer_df.loc[:, ['1', '2', '3', '4', '5', '11']].sum(axis=1)
             transfer_df['ID'] = transfer_df['ID'].apply(lambda x: x.replace(' ', ''))
             transfer_df['ID'] = transfer_df['ID'].apply(lambda x: x.replace('nan', ''))
@@ -1061,13 +1122,19 @@ def proccessing_transfer_table3_to_reestr():
             itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].apply(lambda x: x.replace(' ', ''))
             itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].apply(lambda x: x.replace('nan', ''))
 
-            # конвертируем в инт номера квартала и выдела,дату
-            itog_df['4'] = itog_df['4'].apply(convert_to_float)
-            itog_df['5'] = itog_df['5'].apply(convert_to_float)
-            itog_df['11'] = itog_df['11'].apply(convert_to_float)
+            # Приводим к строковому виду чтобы очистить от разделителей кв. и в.
+            itog_df['4'] = itog_df['4'].astype(str)
+            itog_df['5'] = itog_df['5'].astype(str)
+            itog_df['11'] = itog_df['11'].astype(str)
 
-            itog_df['4'] = itog_df['4'].apply(convert_to_int_transfer)
-            itog_df['5'] = itog_df['5'].apply(convert_to_int_transfer)
+            # Очищаем от разделителей
+            itog_df['4'] = itog_df['4'].apply(lambda x: x.replace('кв.', ''))
+            itog_df['5'] = itog_df['5'].apply(lambda x: x.replace('в.', ''))
+            itog_df['11'] = itog_df['11'].apply(lambda x: x.replace('г.', ''))
+
+            # конвертируем в инт год лесоустройства
+
+            itog_df['11'] = itog_df['11'].apply(convert_to_float)
             itog_df['11'] = itog_df['11'].apply(convert_to_int_transfer)
 
             # Получаем текущую дату
@@ -1085,13 +1152,19 @@ def proccessing_transfer_table3_to_reestr():
             added_df[['1', '2', '3', '11']] = added_df[['1', '2', '3', '11']].apply(lambda x: x.replace(' ', ''))
             added_df[['1', '2', '3', '11']] = added_df[['1', '2', '3', '11']].apply(lambda x: x.replace('nan', ''))
 
-            # конвертируем в инт номера квартала и выдела
-            added_df['4'] = added_df['4'].apply(convert_to_float)
-            added_df['5'] = added_df['5'].apply(convert_to_float)
-            added_df['11'] = added_df['11'].apply(convert_to_float)
+            #   Приводим к строковому виду чтобы очистить от разделителей кв. и в.
+            added_df['4'] = added_df['4'].astype(str)
+            added_df['5'] = added_df['5'].astype(str)
+            added_df['11'] = added_df['11'].astype(str)
 
-            added_df['4'] = added_df['4'].apply(convert_to_int_transfer)
-            added_df['5'] = added_df['5'].apply(convert_to_int_transfer)
+            # Очищаем от разделителей
+            added_df['4'] = added_df['4'].apply(lambda x: x.replace('кв.', ''))
+            added_df['5'] = added_df['5'].apply(lambda x: x.replace('в.', ''))
+            added_df['11'] = added_df['11'].apply(lambda x: x.replace('г.', ''))
+
+            # конвертируем в инт год лесоустройства
+
+            added_df['11'] = added_df['11'].apply(convert_to_float)
             added_df['11'] = added_df['11'].apply(convert_to_int_transfer)
             # Переименовываем после соединения колонки в таблице с добавленными участками
             added_df.rename(columns={'1': 'Лесничество', '2': 'Участковое лесничество', '3': 'Урочище',
@@ -1112,26 +1185,26 @@ def proccessing_transfer_table3_to_reestr():
 
 
     except ValueError as e:
-        messagebox.showerror('Артемида 1.5',
+        messagebox.showerror('Артемида 1.6',
                              f'Не найдена колонка или лист {e.args}\nДанные в файле должны находиться на листе с названием Реестр УПП'
                              f'\nВ файле должны быть колонки: Лесничество,Участковое лесничество,Урочище ,Номер лесного квартала,\n'
                              f'Номер лесотаксационного выдела,Целевое назначение лесов ,Категория защитных лесов (код) ')
     except NameError:
-        messagebox.showerror('Артемида 1.5', f'Выберите файл с данными и конечную папку')
+        messagebox.showerror('Артемида 1.6', f'Выберите файл с данными и конечную папку')
     except FileNotFoundError:
-        messagebox.showerror('Артемида 1.5', f'Проверьте наличие указанных файлов')
+        messagebox.showerror('Артемида 1.6', f'Проверьте наличие указанных файлов')
     except PermissionError:
-        messagebox.showerror('Артемида 1.5', f'Закройте файлы с созданными раньше отчетами!!!')
+        messagebox.showerror('Артемида 1.6', f'Закройте файлы с созданными раньше отчетами!!!')
     except MemoryError:
-        messagebox.showerror('Артемида 1.5', f'Слишком большая таблица!!!\nПроверьте размер таблицы!!!\nНажмите CTRL+END для проверки'
+        messagebox.showerror('Артемида 1.6', f'Слишком большая таблица!!!\nПроверьте размер таблицы!!!\nНажмите CTRL+END для проверки'
                                              f'Пересоздайте файл без пустых строк и столбцов')
     else:
-        messagebox.showinfo('Артемида 1.5', 'Работа программы успешно завершена!!!')
+        messagebox.showinfo('Артемида 1.6', 'Работа программы успешно завершена!!!')
 
 
 if __name__ == '__main__':
     window = Tk()
-    window.title('Артемида 1.5')
+    window.title('Артемида 1.6')
     window.geometry('760x750+600+200')
     window.resizable(False, False)
 
