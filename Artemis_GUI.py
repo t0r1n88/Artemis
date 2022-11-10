@@ -362,6 +362,17 @@ def convert_params_columns_to_int(lst):
             continue
     return out_lst
 
+def prepare_column_to_int(cell):
+    """
+    Функция для обработки ячеек в инт, чтобы они в экселе потом не отображались как строки
+    """
+    try:
+        float_value = float(cell)
+        int_value = int(float_value)
+        return int_value
+    except ValueError:
+        return cell
+
 def processing_report_square_wood():
     """
     Фугкция для обработки данных
@@ -923,10 +934,12 @@ def proccessing_transfer_table3_to_reestr():
     :return:
     """
     try:
-        # Создаем список колонок которые нужно загрузить
-        use_cols = list(range(25))
+
         # Получаем значение кнопки
         region = group_rb_region_transfer_3_to_reestr.get()
+        # Создаем список колонок которые нужно загрузить
+        use_cols = list(range(25))
+
         # Загружаем датафреймы
         df_upp = pd.read_excel(file_transfer_reestr, skiprows=8, usecols=use_cols, dtype={4: str, 5: str})
         df_table_3 = pd.read_excel(file_transfer_to_upp, skiprows=6,
@@ -1004,9 +1017,6 @@ def proccessing_transfer_table3_to_reestr():
 
             itog_df = pd.concat([df_upp, added_df], ignore_index=True)
 
-            itog_df.sort_values(['1', '2', '3', '4', '5',
-                                 ], inplace=True)
-
             # Приводим даты к нормальному виду ДД.ММ.ГГГГ
             itog_df['17'] = pd.to_datetime(itog_df['17'], errors='coerce', dayfirst=True)
             itog_df['22'] = pd.to_datetime(itog_df['22'], errors='coerce', dayfirst=True)
@@ -1018,7 +1028,9 @@ def proccessing_transfer_table3_to_reestr():
             itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].astype(str)
             # Заменяем
             itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].apply(lambda x: x.replace(' ', ''))
-            itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].apply(lambda x: x.replace('nan', ''))
+
+            itog_df[['1', '2', '3', '4', '5']] = itog_df[['1', '2', '3', '4', '5']].apply(
+                lambda x: x.replace('nan', np.nan))
 
             # Приводим к строковому виду чтобы очистить от разделителей кв. и в.
             itog_df['4'] = itog_df['4'].astype(str)
@@ -1027,6 +1039,13 @@ def proccessing_transfer_table3_to_reestr():
             # Очищаем от разделителей
             itog_df['4'] = itog_df['4'].apply(lambda x: x.replace('кв.', ''))
             itog_df['5'] = itog_df['5'].apply(lambda x: x.replace('в.', ''))
+
+            # конвертируем в инт чтобы корректно отображалось
+            itog_df['4'] = itog_df['4'].apply(prepare_column_to_int)
+            itog_df['5'] = itog_df['5'].apply(prepare_column_to_int)
+
+            # Сортируем
+            itog_df.sort_values(by=['1', '2', '3', '4', '5'], inplace=True)
 
             # Получаем текущую дату
             current_time = time.strftime('%H_%M_%S %d.%m.%Y')
@@ -1050,6 +1069,10 @@ def proccessing_transfer_table3_to_reestr():
             # Очищаем от разделителей
             added_df['4'] = added_df['4'].apply(lambda x: x.replace('кв.', ''))
             added_df['5'] = added_df['5'].apply(lambda x: x.replace('в.', ''))
+
+            # конвертируем в инт чтобы корректно отображалось
+            added_df['4'] = added_df['4'].apply(prepare_column_to_int)
+            added_df['5'] = added_df['5'].apply(prepare_column_to_int)
 
             # Переименовываем после соединения колонки в таблице с добавленными участками
             added_df.rename(columns={'1': 'Лесничество', '2': 'Участковое лесничество', '3': 'Урочище',
@@ -1106,9 +1129,6 @@ def proccessing_transfer_table3_to_reestr():
 
             itog_df = pd.concat([df_upp, added_df], ignore_index=True)
 
-            itog_df.sort_values(['1', '2', '3', '4', '5', '11'
-                                 ], inplace=True)
-
             # Приводим даты к нормальному виду ДД.ММ.ГГГГ
             itog_df['17'] = pd.to_datetime(itog_df['17'], errors='coerce', dayfirst=True)
             itog_df['22'] = pd.to_datetime(itog_df['22'], errors='coerce', dayfirst=True)
@@ -1120,7 +1140,8 @@ def proccessing_transfer_table3_to_reestr():
             itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].astype(str)
             # Заменяем
             itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].apply(lambda x: x.replace(' ', ''))
-            itog_df[['1', '2', '3']] = itog_df[['1', '2', '3']].apply(lambda x: x.replace('nan', ''))
+            itog_df[['1', '2', '3', '4', '5', '11']] = itog_df[['1', '2', '3', '4', '5', '11']].apply(
+                lambda x: x.replace('nan', np.nan))
 
             # Приводим к строковому виду чтобы очистить от разделителей кв. и в.
             itog_df['4'] = itog_df['4'].astype(str)
@@ -1132,10 +1153,13 @@ def proccessing_transfer_table3_to_reestr():
             itog_df['5'] = itog_df['5'].apply(lambda x: x.replace('в.', ''))
             itog_df['11'] = itog_df['11'].apply(lambda x: x.replace('г.', ''))
 
-            # конвертируем в инт год лесоустройства
+            # конвертируем в инт чтобы корректно отображалось
+            itog_df['4'] = itog_df['4'].apply(prepare_column_to_int)
+            itog_df['5'] = itog_df['5'].apply(prepare_column_to_int)
+            itog_df['11'] = itog_df['11'].apply(prepare_column_to_int)
 
-            itog_df['11'] = itog_df['11'].apply(convert_to_float)
-            itog_df['11'] = itog_df['11'].apply(convert_to_int_transfer)
+            # Сортируем
+            itog_df.sort_values(by=['1', '2', '3', '4', '5', '11'], inplace=True)
 
             # Получаем текущую дату
             current_time = time.strftime('%H_%M_%S %d.%m.%Y')
@@ -1163,9 +1187,14 @@ def proccessing_transfer_table3_to_reestr():
             added_df['11'] = added_df['11'].apply(lambda x: x.replace('г.', ''))
 
             # конвертируем в инт год лесоустройства
+            # конвертируем в инт чтобы корректно отображалось
+            added_df['4'] = added_df['4'].apply(prepare_column_to_int)
+            added_df['5'] = added_df['5'].apply(prepare_column_to_int)
+            added_df['11'] = added_df['11'].apply(prepare_column_to_int)
 
-            added_df['11'] = added_df['11'].apply(convert_to_float)
-            added_df['11'] = added_df['11'].apply(convert_to_int_transfer)
+            # Сортируем
+            added_df.sort_values(by=['1', '2', '3', '4', '5', '11'], inplace=True)
+
             # Переименовываем после соединения колонки в таблице с добавленными участками
             added_df.rename(columns={'1': 'Лесничество', '2': 'Участковое лесничество', '3': 'Урочище',
                                      '4': 'Номер лесного квартала', '5': 'Номер лесотаксационного выдела', },
